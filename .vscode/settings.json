@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "*.inc": "glsl",
+        "*.rgen": "glsl",
+        "*.rchit": "glsl",
+        "*.rmiss": "glsl",
+        "*.rint": "glsl",
+        "stdbool.h": "c"
+    }
+}

@@ -1,0 +1,20 @@
+name "echo-c"
+platforms "windows"
+
+buildType "debug" {
+	buildOptions "debugMode" "debugInfo" "alwaysStackFrame" "stackStomping" "warningsAsErrors"
+}
+buildType "release" {
+	buildOptions "releaseMode" "optimize" "inline" "noBoundsCheck"
+}
+
+configuration "test" {
+	targetType "executable"
+	targetName "ec"
+}
+configuration "library" {
+	targetType "library"
+	excludedSourceFiles "src/test.d"
+}
+
+dependency "common" version="~master"
