@@ -102,6 +102,14 @@ struct tm {
     int tm_isdst; 
 };
 
+struct { // sizeof(flags) = 4
+    unsigned int flag1 : 1;
+    unsigned int flag2 : 1;
+    unsigned int flag3 : 1;
+    unsigned int flag4 : 2;
+    unsigned int flag5 : 4;
+} flags;
+
 struct SS;
 
 enum AA { A, B = 1, C };

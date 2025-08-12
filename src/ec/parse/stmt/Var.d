@@ -4,7 +4,8 @@ import ec.all;
 
 /**
  * Variable
- *    Expr initialiser
+ *    [ Expr ] Bitfield
+ *    [ Expr ] initialiser
  */
 final class Var : Stmt {
 public:
@@ -12,6 +13,11 @@ public:
     string name;
     StorageClass storageClass;
     bool isParam;
+    bool hasInitialiser;// true if there is an init Expr
+                        // If true then last() is the initialiser Expr   
+
+    bool hasBitfield;   // if this is true then first() is the bitfield Expr
+                        // which is usually just a number but could be an Expr
 
     // Several Vars declared on the same line eg. int a, b, *c;
     bool firstInList;   // true if this is the first in the list
@@ -24,15 +30,15 @@ public:
 
     bool isGlobal() { return parent.isA!CFile; }
 
-    bool hasInitialiser() { return children.length > 0; }
-
-    Expr initialiser() { assert(hasInitialiser()); return children[0].as!Expr; }
+    Expr bitfield() { assert(hasBitfield); return first().as!Expr; }
+    Expr initialiser() { assert(hasInitialiser); return last().as!Expr; }
 
     override bool isResolved() {
         return type.isResolved();
     }
 
     override string toString() {
-        return "%s %s".format(type, name);
+        string bf = hasBitfield ? " : BITFIELD" : "";
+        return "%s %s%s".format(type, name, bf);
     }
 }

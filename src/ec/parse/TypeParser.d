@@ -27,14 +27,12 @@ Type parseType(Node parent, Tokens tokens, bool required = true) {
     if(!type && tokens.matches("struct")) {
         type = parseStruct(tokens);
     }
-
     if(!type && tokens.matches("union")) {
         type = parseUnion(tokens);
     }
     if(!type && tokens.matches("enum")) {
         type = parseEnum(tokens);
     }
-
     if(!type) {
         type = parseTypedef(tokens);
     }

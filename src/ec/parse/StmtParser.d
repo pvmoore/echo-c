@@ -609,8 +609,16 @@ void parseVar(Node parent, Tokens tokens, Type type, StorageClass storageClass) 
         var.name = tokens.text(); tokens.next();
     }
 
+    // bitfield
+    if(tokens.matches(TKind.COLON)) {
+        tokens.next();
+        var.hasBitfield = true;
+        parseExpr(var, tokens);
+    }
+
     if(tokens.matches(TKind.EQUALS)) {
         tokens.next();
+        var.hasInitialiser = true;
         parseExpr(var, tokens);
     }
 
@@ -640,8 +648,16 @@ void parseVar(Node parent, Tokens tokens, Type type, StorageClass storageClass) 
         var.type = type;
         var.name = tokens.text(); tokens.next();
 
+        // bitfield
+        if(tokens.matches(TKind.COLON)) {
+            tokens.next();
+            var.hasBitfield = true;
+            parseExpr(var, tokens);
+        }
+
         if(tokens.matches(TKind.EQUALS)) {
             tokens.next();
+            var.hasInitialiser = true;
             parseExpr(var, tokens);
         }
     }

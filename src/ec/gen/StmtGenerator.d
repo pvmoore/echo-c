@@ -434,8 +434,13 @@ private:
         } else if(var.name) {
             buf.add(" %s", var.name);
         }
+
+        if(var.hasBitfield) {
+            buf.add(" : ");
+            generate(var.bitfield());
+        }
         
-        if(var.hasInitialiser()) {
+        if(var.hasInitialiser) {
             buf.add(" = ");
             generate(var.initialiser());
         }
