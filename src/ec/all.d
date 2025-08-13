@@ -33,6 +33,7 @@ import ec.parse.expr.Cast;
 import ec.parse.expr.Dot;
 import ec.parse.expr.Expr;
 import ec.parse.expr.Identifier;
+import ec.parse.expr.Index;
 import ec.parse.expr.Infix;
 import ec.parse.expr.Initialiser;
 import ec.parse.expr.Number;

@@ -21,6 +21,9 @@ public:
             if(c & PtrFlags.CONST) f ~= "const ";
             if(c & PtrFlags.VOLATILE) f ~= "volatile ";
             if(c & PtrFlags.RESTRICT) f ~= "__restrict ";
+            if(c & PtrFlags.PTR32) f ~= "__ptr32 ";
+            if(c & PtrFlags.PTR64) f ~= "__ptr64 ";
+            if(c & PtrFlags.UNALIGNED) f ~= "__unaligned ";
             s ~= f.strip();
         }
         return s;
@@ -31,7 +34,10 @@ enum PtrFlags {
     STD       = 0,
     CONST     = 1,
     VOLATILE  = 2,
-    RESTRICT  = 4
+    RESTRICT  = 4,  // restrict | __restrict
+    PTR32     = 8,  // __ptr32
+    PTR64     = 16, // __ptr64
+    UNALIGNED = 32, // __unaligned
 }
 
 enum EType {
@@ -51,6 +57,7 @@ enum EType {
     ENUM,
     STRUCT,
     UNION,
+    FUNCTION_DECL,
     FUNCTION_PTR,
 }
 
@@ -68,6 +75,7 @@ string stringOf(EType t) {
         case EType.LONG_DOUBLE: return "long double";
         case EType.VARARG: return "...";
         case EType.STRUCT: return "struct";
+        case EType.FUNCTION_DECL: return "function declaration";
         case EType.FUNCTION_PTR: return "function pointer";
         case EType.ARRAY: return "array";
         case EType.ENUM: return "enum";
@@ -81,9 +89,11 @@ struct TypeQualifiers {
     bool isUnsigned;
     bool isVolatile;
     bool isRestrict;
+    bool isUnaligned; // __unaligned (ms specific). I think the technically has no effect before the *
+                      // but I have seen it used so here it is
 
     bool any() {
-        return isConst || isSigned || isUnsigned || isVolatile || isRestrict;
+        return isConst || isSigned || isUnsigned || isVolatile || isRestrict || isUnaligned;
     }
 
     void mergeFrom(TypeQualifiers other) {
@@ -92,6 +102,7 @@ struct TypeQualifiers {
         isUnsigned |= other.isUnsigned;
         isVolatile |= other.isVolatile;
         isRestrict |= other.isRestrict;
+        isUnaligned |= other.isUnaligned;
     }
 
     string toString() {
@@ -101,6 +112,7 @@ struct TypeQualifiers {
         if(isUnsigned) s ~= "unsigned ";
         if(isVolatile) s ~= "volatile ";
         if(isRestrict) s ~= "restrict ";
+        if(isUnaligned) s ~= "__unaligned ";
         return s;
     }
 }
@@ -116,6 +128,10 @@ string extractVariableName(Type t) {
         return at.varName;
     } else if(auto fp = t.as!FunctionPtr) {
        return fp.varName;
-    } 
+    } else if(auto tr = t.as!TypeRef) {
+        if(tr.etype.isOneOf(EType.FUNCTION_DECL, EType.FUNCTION_PTR)) {
+            return tr.name;
+        }
+    }
     return null;
 }

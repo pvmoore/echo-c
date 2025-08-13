@@ -36,6 +36,7 @@ enum EStmt {
     CAST,
     DOT,
     IDENTIFIER,
+    INDEX,
     INFIX,
     INITIALISER, 
     NUMBER,

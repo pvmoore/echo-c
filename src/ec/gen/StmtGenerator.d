@@ -60,6 +60,11 @@ private:
             addNewLine = !v.inList || v.lastInList;
             semicolon = !v.inList || v.lastInList;
         } 
+        if(Typedef td = n.as!Typedef) {
+            addLineComment = !td.inList || td.lastInList;
+            addNewLine = !td.inList || td.lastInList;
+            semicolon = !td.inList || td.lastInList;
+        }
 
         if(semicolon) {
             buf.add(";");
@@ -105,6 +110,7 @@ private:
             case EStmt.PARENS: generate(stmt.as!Parens); break;
             case EStmt.IDENTIFIER: generate(stmt.as!Identifier); break;
             case EStmt.IF: generate(stmt.as!If); break;
+            case EStmt.INDEX: generate(stmt.as!Index); break;
             case EStmt.INFIX: generate(stmt.as!Infix); break; 
             case EStmt.INITIALISER: generate(stmt.as!Initialiser); break;
             case EStmt.LABEL: generate(stmt.as!Label); break;
@@ -262,6 +268,15 @@ private:
             closeScope();
         }
     }
+    void generate(Index i) {
+        generate(i.pointer());
+
+        foreach(e; i.exprs()) {
+            buf.add("[");
+            generate(e);
+            buf.add("]");
+        }
+    }
     void generate(Infix infix) {
         generate(infix.left());
         buf.add(" %s ", infix.op.stringOf());
@@ -335,6 +350,11 @@ private:
                 buf.add(")");
                 break;
             }
+            case Pragma.PragmaKind.INTRINSIC: {
+                auto i = pragma_.data.intrinsic;
+                buf.add("intrinsic(%s)", i.funcnames.join(", "));
+                break;
+            }
             default: todo("generate(Pragma): implement %s".format(pragma_.kind));
         }
     }
@@ -405,10 +425,18 @@ private:
     }
 
     void generate(Typedef td) {
-        buf.add("typedef ");
-        generate(td.type);
 
-        if(!td.type.isA!FunctionPtr) {
+        // Generate the type if this Typedef is on its own or it is the first of many in the same stmt
+        if(!td.inList || td.firstInList) {
+            buf.add("typedef ");
+            generate(td.type);
+        }
+        // Add a comma and ptr if this is a subsequent Typedef in a list
+        if(td.inList && !td.firstInList) {
+            buf.add(",%s", td.type.getPtrString());
+        }
+
+        if(!td.nameIsEmbedded) {
             buf.add(" %s", td.name);
         }
     }
@@ -419,7 +447,7 @@ private:
     void generate(Var var) {
         buf.add("%s", var.storageClass);
 
-        // Generate the type if this Var is on its own or it is the first of many
+        // Generate the type if this Var is on its own or it is the first of many in the same stmt
         if(!var.inList || var.firstInList) {
             generate(var.type);
         }
@@ -543,6 +571,7 @@ private:
     void generate(TypeRef tr) {
         if(tr.hasChildren()) {
             generate(tr.first().as!Stmt);
+            buf.add("%s", tr.getPtrString());
         } else {
             buf.add(tr.toString());
         }

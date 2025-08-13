@@ -11,11 +11,12 @@ void parseCFile(CFile cfile) {
     int pos = 0;
 
     while(!tokens.isEof()) {
+        log("parseStmt %s %s", count, tokens.token());
         parseStmt(cfile, tokens);
         
         throwIf(tokens.pos == pos, "we made no progress %s", tokens.token());
         pos = tokens.pos; 
-        if(count++ > 1100) break;
+        if(count++ > 5660) break;
 
     }
     log("done");
@@ -102,17 +103,46 @@ void parseStmt(Node parent, Tokens tokens) {
  * Type [ name ] [ , ) ]
  */
 void parseParamVar(Node parent, Tokens tokens) {
+    log("parseParamVar %s", tokens.token());
     Var var = tokens.make!Var();
     parent.add(var);
 
     var.type = parseType(var, tokens);
     var.isParam = true;
 
-    if(string n = extractVariableName(var.type)) {
-        var.name = n;
+    if(var.type.isA!FunctionPtr) {
+        var.name = extractVariableName(var.type);
     } else if(tokens.matches(TKind.IDENTIFIER)) {
         var.name = tokens.text(); tokens.next();
     }
+}
+
+/**
+ * ReturnType [ cc ] name '(' { Type [ name ] } ')'
+ */
+Function parseFunctionDeclaration(Tokens tokens, Type returnType, CallingConvention cc) {
+    log("parseFunctionDeclaration %s", tokens.token());
+
+    Function fn = tokens.make!Function();
+
+    fn.name = tokens.text(); tokens.next();
+    fn.callingConvention = cc; 
+    fn.returnType = returnType;
+
+    tokens.skip(TKind.LPAREN);
+
+    while(!tokens.matchesOneOf(TKind.RPAREN, TKind.NONE)) {
+        parseParamVar(fn, tokens);
+
+        if(tokens.matches(TKind.COMMA)) {
+            tokens.next();
+        }
+    }
+    tokens.skip(TKind.RPAREN);
+
+    fn.numParams = fn.numChildren();
+
+    return fn;
 }
 
 //──────────────────────────────────────────────────────────────────────────────────────────────────
@@ -217,38 +247,19 @@ void parseFor(Node parent, Tokens tokens) {
 }
 
 /**
- * { storage-class } Type name '(' params ')' [ '{' body '}'  | ';' ]
+ * { storage-class } Type [ cc ] name '(' params ')' [ '{' body '}'  | ';' ]
  */
 void parseFunc(Node parent, Tokens tokens, Type returnType, StorageClass storageClass) {
-    Function func = tokens.make!Function();
+    log("parseFunc %s", tokens.token());
+
+    auto cc = parseCallingConvention(tokens);
+
+    Function func = parseFunctionDeclaration(tokens, returnType, cc);
     parent.add(func);
-    func.returnType = returnType;
+
     func.storageClass = storageClass;
 
-    if(tokens.matches(TKind.IDENTIFIER, TKind.IDENTIFIER)) {
-        func.callingConvention = parseCallingConvention(tokens);
-    }
-
-    func.name = tokens.text(); tokens.next();
-
-    tokens.skip(TKind.LPAREN);
-
-    while(!tokens.isEof && !tokens.matches(TKind.RPAREN)) {
-        parseParamVar(func, tokens);
-        func.numParams++;
-
-        if(tokens.matches(TKind.COMMA)) {
-            tokens.next();
-        }
-    }
-    tokens.skip(TKind.RPAREN);
-
-    // The preprocessor seems to want to put a #line directive between
-    // the function declaration and the body sometimes 
-    if(tokens.matches(TKind.HASH, TKind.IDENTIFIER)) {
-        tokens.skipToNextLine();
-    }
-
+    // body
     if(tokens.matches(TKind.LBRACE)) {
         func.hasBody = true;
         tokens.next();
@@ -345,6 +356,8 @@ void parseHashPragma(Node parent, Tokens tokens) {
         parsePragmaWarning(parent, tokens);
     } else if(tokens.matches("pack")) {
         parsePragmaPack(parent, tokens);
+    } else if(tokens.matches("intrinsic")) {
+        parsePragmaIntrinsic(parent, tokens);
     } else {
         todo("unsupported #pragma %s".format(tokens.text()));
     }
@@ -363,6 +376,28 @@ void parse__pragma(Node parent, Tokens tokens) {
         parsePragmaPack(parent, tokens);
     } else {
         todo("unsupported __pragma %s".format(tokens.text()));
+    }
+    tokens.skip(TKind.RPAREN);
+}
+/**
+ * #pragma intrinsic '(' function-name { ',' function-name } ')'
+ */
+void parsePragmaIntrinsic(Node parent, Tokens tokens) {
+    tokens.skip("intrinsic");
+
+    Pragma pragma_ = tokens.make!Pragma();
+    parent.add(pragma_);
+    pragma_.kind = Pragma.PragmaKind.INTRINSIC;
+
+    tokens.skip(TKind.LPAREN);
+    while(!tokens.matchesOneOf(TKind.RPAREN, TKind.NONE)) {
+
+        pragma_.data.intrinsic.funcnames ~= tokens.text();
+        tokens.next();
+
+        if(tokens.matches(TKind.COMMA)) {
+            tokens.next();
+        }
     }
     tokens.skip(TKind.RPAREN);
 }
@@ -569,24 +604,60 @@ void parseScope(Node parent, Tokens tokens) {
 }
 
 /**
- * 'typedef' type name ';'
+ * 'typedef' type name { ',' { '*' } name } ';'
  */
 void parseTypedef(Node parent, Tokens tokens) {
+    log("parseTypedef %s", tokens.text());
     tokens.skip("typedef");
 
     Typedef td = tokens.make!Typedef();
+    Typedef first = td;
     parent.add(td);
 
     td.type = parseType(td, tokens);
 
     // If this is a function pointer then we take the name from the function pointer
-    if(auto n = extractVariableName(td.type)) {
-        td.name = n;
-    } else {
+    if(td.type.isA!FunctionPtr || td.nameIsEmbedded) {
+        td.name = extractVariableName(td.type);
+    } else if(tokens.matches(TKind.IDENTIFIER)) {
         td.name = tokens.text(); tokens.next();
     }
 
+    log("typedef %s name = %s", td.type, td.name);
+
     parent.getCFile().registerTypedef(td);
+
+    // subsequent declarations
+    while(tokens.matches(TKind.COMMA)) {
+        tokens.skip(TKind.COMMA);
+        
+        first.inList = true;
+        first.firstInList = true;
+
+        // Clone the type and remove the pointers
+        auto type = td.type.clone();
+
+        // If any qualifiers are specified then they replace the original qualifiers
+        TypeQualifiers qualifiers = parseQualifiers(tokens);
+        if(qualifiers.any()) {
+            type.qualifiers = qualifiers;
+        }
+
+        // Add pointer information
+        type.ptrs = parsePtrFlags(tokens);  
+
+        td = tokens.make!Typedef();
+        parent.add(td);
+        td.inList = true;
+        td.type = type;
+        td.name = tokens.text(); tokens.next();
+
+        parent.getCFile().registerTypedef(td);
+    }
+
+    td.lastInList = td.inList;
+
+    log("end of typedef %s", td.name);
 
     tokens.skip(TKind.SEMI_COLON);
 }
@@ -603,11 +674,17 @@ void parseVar(Node parent, Tokens tokens, Type type, StorageClass storageClass) 
     var.type = type;
     var.storageClass = storageClass;
 
-    if(string n = extractVariableName(var.type)) {
-        var.name = n;
-    } else {
+    if(var.type.isA!FunctionPtr) {
+        var.name = extractVariableName(var.type);
+    } else if(tokens.matches(TKind.IDENTIFIER)) {
         var.name = tokens.text(); tokens.next();
     }
+
+    // if(string n = extractVariableName(var.type)) {
+    //     var.name = n;
+    // } else {
+    //     var.name = tokens.text(); tokens.next();
+    // }
 
     // bitfield
     if(tokens.matches(TKind.COLON)) {
@@ -624,7 +701,6 @@ void parseVar(Node parent, Tokens tokens, Type type, StorageClass storageClass) 
 
     // subsequent declarations
     while(tokens.matches(TKind.COMMA)) {
-        log("parseVar comma %s", tokens.text());
         tokens.skip(TKind.COMMA);
 
         firstVar.inList = true;

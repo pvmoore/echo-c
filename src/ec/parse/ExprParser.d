@@ -139,6 +139,11 @@ void parseRHS(Node parent, Tokens tokens) {
                 parent = attachAndRead(parent, d, tokens, true);
                 break;
             }
+            case TKind.LSQUARE: {
+                auto i = parseAndReturnIndex(tokens);
+                parent = attachAndRead(parent, i, tokens, false);
+                break;
+            }
             default:
                 throwIf(true, "Unexpected RHS token %s".format(tokens.text()));
         }
@@ -220,6 +225,17 @@ Dot parseAndReturnDotOrArrow(Tokens tokens) {
     }
 
     return dot;
+}
+
+Index parseAndReturnIndex(Tokens tokens) {
+    Index index = tokens.make!Index();
+
+    while(tokens.kind() == TKind.LSQUARE) {
+        tokens.skip(TKind.LSQUARE);
+        parseExpr(index, tokens);
+        tokens.skip(TKind.RSQUARE);
+    }
+    return index;
 }
 
 /**

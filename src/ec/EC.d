@@ -41,7 +41,7 @@ public:
 
         parseCFile(cfile);
 
-        enum WRITE_AST = false;
+        enum WRITE_AST = true;
         static if(WRITE_AST) {
             import std.file : write;
             string dumped = cfile.dumpToString();

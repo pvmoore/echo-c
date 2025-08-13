@@ -4,37 +4,47 @@ import ec.all;
 
 /**
  * TypeRef
- *    Struct | Union | Enum     optional Type definition
+ *    Struct | Union | Enum | Function    optional Type definition
  */
 final class TypeRef : Type {
     string name;
-    Type type;      // points to the Type or null if the type is a child (Struct, Union, Enum) of this node
 
-    this() {}
-    this(string name, Type type) {
-        assert(type);
+    Type typeRef;    // points to the Type
+    Stmt nodeRef;    // points to the Struct, Union, Enum or Function definition 
+                     // (may be a child node but could be a child of another TypeRef)
+
+    this(string name, EType etype) {
         this.name = name;
-        this.type = type;
+        this.etype = etype;
+    }
+    this(string name, Type type) {
+        this.name = name;
+        this.typeRef = type;
         this.etype = type.etype;
     }
 
     override Type clone() {
-        throwIf(type is null, "todo - handle clone TypeRef with child");
-        TypeRef t = new TypeRef(name, type);
+        TypeRef t = new TypeRef(name, etype);
+        t.typeRef = typeRef;
+        t.nodeRef = nodeRef;
         t.ptrs = ptrs.dup;
         t.qualifiers = qualifiers;
         return t;
     }
 
     override string toString() {
-        if(type is null) {
-            if(!hasChildren()) {
-                // [ const ] struct <name>;
-                // [ const ] enum <name>;
-                // [ const ] union <name>;
-                string t = "%s".format(etype).toLower();
-                return "%s%s %s".format(qualifiers, t, name);
+        if(typeRef is null) {
+            // [ const ] struct <name>;
+            // [ const ] enum <name>;
+            // [ const ] union <name>;
+            // storage-class Type <name>(Params);
+            if(etype == EType.FUNCTION_DECL) {
+                //Function fn = nodeRef.as!Function;
+                //return "%s %s(%s)".format(fn.returnType, name, fn.params());
+                return name;
             }
+            string t = "%s".format(etype).toLower();
+            return "%s%s %s%s".format(qualifiers, t, name, getPtrString());
         }
         return "%s%s%s".format(qualifiers, name, getPtrString());
     }

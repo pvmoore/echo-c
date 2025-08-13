@@ -16,11 +16,13 @@ final class Pragma : Stmt {
 
     enum PragmaKind {
         PACK,
-        WARNING
+        WARNING,
+        INTRINSIC
     }
     static union Data {
         Warning[] warnings;
         Pack pack;
+        Intrinsic intrinsic;
     }
     static struct Warning {
         string specifier;       // disable, once, error, etc.
@@ -45,8 +47,14 @@ final class Pragma : Stmt {
             return "pack(%s%s)".format(isPush ? "push " : isPop ? "pop " : "", n);
         }
     }
+    static struct Intrinsic {
+        string[] funcnames;
+    }
 
     override string toString() {
+        if(kind == PragmaKind.INTRINSIC) {
+            return "Pragma(INTRINSIC, %s)".format(data.intrinsic.funcnames);
+        }
         if(kind == PragmaKind.WARNING) {
             string s = "Pragma(WARNING, ";
             foreach(i, w; data.warnings) {

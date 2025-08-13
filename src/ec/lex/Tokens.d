@@ -56,9 +56,13 @@ public:
             pos++;
         }
     }
-    bool matchesOneOf(string[] str...) {
-        foreach(s; str) {
-            if(matches(s)) return true;
+    bool matchesOneOf(Args...)(Args array) {
+        static foreach(k; array) {
+            static if(is(typeof(k) == TKind)) {
+                if(kind() == k) return true;
+            } else static if(is(typeof(k) == string)) {
+                if(kind() == TKind.IDENTIFIER && text() == k) return true;
+            } else static assert(false);
         }
         return false;
     }
@@ -72,12 +76,6 @@ public:
         }
         return true;
     }
-    // bool matches(TKind[] kinds...) {
-    //     foreach(i, k; kinds) {
-    //         if(kind(i.as!int) != k) return false;
-    //     }
-    //     return true;
-    // }
 
     T make(T : Stmt)() {
         T t;
@@ -114,6 +112,7 @@ public:
         else static if(is(T == Enum)) t = new T(EStmt.ENUM, loc);
         else static if(is(T == Union)) t = new T(EStmt.UNION, loc);
         else static if(is(T == Switch)) t = new T(EStmt.SWITCH, loc);
+        else static if(is(T == Index)) t = new T(EStmt.INDEX, loc);
 
         else {
             static assert(false, "Unsupported statement type %s".format(T.stringof));

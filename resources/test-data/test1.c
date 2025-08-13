@@ -2,7 +2,7 @@
 #include <stdbool.h>
 
 // variable declarations and definitions
-void variables() {
+static void variables() {
     int a = 5;
     float b = 3.14;
     char c = 'A';
@@ -83,6 +83,14 @@ void typedefs() {
     _Mbstatet mbState;
 }
 
+void arrays() {
+    int arr1[] = { 1, 2, 3 };
+    int arr2[2][3] = { { 1, 2, 3 }, { 4, 5, 6 } };
+
+    int a = arr1[0];
+    int b = arr2[1][2];
+}
+
 int g1, g2, *g3;
 
 typedef struct _Mbstatet {
@@ -101,6 +109,25 @@ struct tm {
     int tm_yday;  
     int tm_isdst; 
 };
+
+typedef long long time_t;
+typedef long long __time64_t;
+typedef signed char INT8, *PINT8;
+
+struct timespec {
+    time_t tv_sec;  
+    long   tv_nsec; 
+};
+struct _timespec64 {
+    __time64_t tv_sec;
+    long       tv_nsec;
+};
+
+int __cdecl _timespec64_get(struct _timespec64* _Ts, int _Base);
+
+static __inline int __cdecl timespec_get(struct timespec* const _Ts, int const _Base) {
+    return _timespec64_get((struct _timespec64*)_Ts, _Base);
+}
 
 struct { // sizeof(flags) = 4
     unsigned int flag1 : 1;
@@ -122,10 +149,56 @@ union DD {
     float b;
 };
 
+typedef struct _PROCESSOR_NUMBER {
+    int a;
+    int b;
+    int c;
+} PROCESSOR_NUMBER, *PPROCESSOR_NUMBER;
+
+PPROCESSOR_NUMBER pnum;
+
+// typedef of a function ptr
+typedef void*(*const foobar)(int);
+
+// typedef of a function declaration
+typedef void* const __cdecl barbaz(int);
+
+// function declaration used as a type
+typedef barbaz *PEXCEPTION_ROUTINE;
+
+typedef int (__cdecl* _CoreCrtSecureSearchSortCompareFunction)(void*, void const*, void const*);
+void* __cdecl bsearch_s(void const* _Key,
+                        void const* _Base,
+                        long long   _NumOfElements,
+                        long long   _SizeOfElements,
+                        _CoreCrtSecureSearchSortCompareFunction _CompareFunction,
+                        void*       _Context);
+
+typedef void* (__stdcall *PFN_vkAllocationFunction)(void* pUserData);
+typedef struct VkAllocationCallbacks {
+    void*                    pUserData;
+    PFN_vkAllocationFunction pfnAllocation;
+} VkAllocationCallbacks;
+
+VkAllocationCallbacks allocCallbacks, *allocCallbacksPtr;
+
+
+typedef unsigned long long LARGE_INTEGER;
+typedef long long LONG, *LONG_PTR;
+
+typedef char __C_ASSERT__[
+    (((LONG)(LONG_PTR)
+    &(((struct { char x; LARGE_INTEGER test; }*)0)->test)) == 8) ? 1 : -1
+    ];
+
+typedef int array10[10];
+array10 arr1;
+
 int main() {
     variables();
     structs();
     statements();
+    arrays();
     
     return 0;
 }
