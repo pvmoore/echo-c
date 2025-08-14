@@ -39,3 +39,15 @@ PtrFlags[] parsePtrFlags(Tokens tokens) {
     }
     return flags;
 }
+
+string stringOf(PtrFlags flag) {
+    // I assume __restrict is an ms keyword. visual studio does not like 'restrict'
+    string f = "*";
+    if(flag & PtrFlags.VOLATILE) f ~= "volatile ";
+    if(flag & PtrFlags.CONST) f ~= "const ";
+    if(flag & PtrFlags.RESTRICT) f ~= "__restrict ";
+    if(flag & PtrFlags.PTR32) f ~= "__ptr32 ";
+    if(flag & PtrFlags.PTR64) f ~= "__ptr64 ";
+    if(flag & PtrFlags.UNALIGNED) f ~= "__unaligned ";
+    return f.strip();
+}

@@ -16,7 +16,7 @@ void parseCFile(CFile cfile) {
         
         throwIf(tokens.pos == pos, "we made no progress %s", tokens.token());
         pos = tokens.pos; 
-        if(count++ > 5660) break;
+        if(count++ > 5800) break;
 
     }
     log("done");

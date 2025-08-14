@@ -8,11 +8,17 @@ import ec;
 void main() {
     writeln("Hello World");
 
-    enum RUN_TEST_SUITE = false;
+    enum ONLY_RUN_TEST_SUITE = false;
 
-    static if(RUN_TEST_SUITE) {
+    static if(ONLY_RUN_TEST_SUITE) {
         runTests();
     } else {
+
+        // Run the tests
+        runTests();
+
+        // .. followed by the big one
+
         EC ec = testMiniVrt();
 
         ec.resolve();

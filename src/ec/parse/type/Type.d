@@ -14,19 +14,7 @@ public:
     abstract Type clone();
 
     final string getPtrString() {
-        // I assume __restrict is an ms keyword. visual studio does not like 'restrict'
-        string s;
-        foreach(c; ptrs) {
-            string f = "*";
-            if(c & PtrFlags.VOLATILE) f ~= "volatile ";
-            if(c & PtrFlags.CONST) f ~= "const ";
-            if(c & PtrFlags.RESTRICT) f ~= "__restrict ";
-            if(c & PtrFlags.PTR32) f ~= "__ptr32 ";
-            if(c & PtrFlags.PTR64) f ~= "__ptr64 ";
-            if(c & PtrFlags.UNALIGNED) f ~= "__unaligned ";
-            s ~= f.strip();
-        }
-        return s;
+        return ptrs.map!(c => stringOf(c)).join("");
     }
 }
 
