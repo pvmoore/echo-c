@@ -6,7 +6,7 @@ abstract class Type : Node {
 public:
     EType etype;
     PtrFlags[] ptrs;    // one per level of indirection
-    TypeQualifiers qualifiers;
+    TypeModifiers modifiers;
 
     final int ptrDepth() { return ptrs.length.as!int; }
     final bool isPtr() { return ptrs.length > 0; }
@@ -18,101 +18,14 @@ public:
         string s;
         foreach(c; ptrs) {
             string f = "*";
-            if(c & PtrFlags.CONST) f ~= "const ";
             if(c & PtrFlags.VOLATILE) f ~= "volatile ";
+            if(c & PtrFlags.CONST) f ~= "const ";
             if(c & PtrFlags.RESTRICT) f ~= "__restrict ";
             if(c & PtrFlags.PTR32) f ~= "__ptr32 ";
             if(c & PtrFlags.PTR64) f ~= "__ptr64 ";
             if(c & PtrFlags.UNALIGNED) f ~= "__unaligned ";
             s ~= f.strip();
         }
-        return s;
-    }
-}
-
-enum PtrFlags {
-    STD       = 0,
-    CONST     = 1,
-    VOLATILE  = 2,
-    RESTRICT  = 4,  // restrict | __restrict
-    PTR32     = 8,  // __ptr32
-    PTR64     = 16, // __ptr64
-    UNALIGNED = 32, // __unaligned
-}
-
-enum EType {
-    VOID,
-    BOOL,
-    CHAR,
-    SHORT,
-    INT,            // assume 32 bits
-    LONG,           // >= 32 bits (usually 32 bits)
-    INT64,          // 64 bits (usually 64 bits)
-    FLOAT,
-    DOUBLE,
-    LONG_DOUBLE,    // >= 64 bits (usually 64 bits)
-    VARARG,         // ... (param only)
-
-    ARRAY,
-    ENUM,
-    STRUCT,
-    UNION,
-    FUNCTION_DECL,
-    FUNCTION_PTR,
-}
-
-string stringOf(EType t) {
-    final switch(t) {
-        case EType.VOID: return "void";
-        case EType.BOOL: return "bool";
-        case EType.CHAR: return "char";
-        case EType.SHORT: return "short";
-        case EType.INT: return "int";
-        case EType.LONG: return "long"; 
-        case EType.INT64: return "long long";
-        case EType.FLOAT: return "float";
-        case EType.DOUBLE: return "double";
-        case EType.LONG_DOUBLE: return "long double";
-        case EType.VARARG: return "...";
-        case EType.STRUCT: return "struct";
-        case EType.FUNCTION_DECL: return "function declaration";
-        case EType.FUNCTION_PTR: return "function pointer";
-        case EType.ARRAY: return "array";
-        case EType.ENUM: return "enum";
-        case EType.UNION: return "union";
-    }
-}
-
-struct TypeQualifiers {
-    bool isConst;  
-    bool isSigned;
-    bool isUnsigned;
-    bool isVolatile;
-    bool isRestrict;
-    bool isUnaligned; // __unaligned (ms specific). I think the technically has no effect before the *
-                      // but I have seen it used so here it is
-
-    bool any() {
-        return isConst || isSigned || isUnsigned || isVolatile || isRestrict || isUnaligned;
-    }
-
-    void mergeFrom(TypeQualifiers other) {
-        isConst |= other.isConst;
-        isSigned |= other.isSigned;
-        isUnsigned |= other.isUnsigned;
-        isVolatile |= other.isVolatile;
-        isRestrict |= other.isRestrict;
-        isUnaligned |= other.isUnaligned;
-    }
-
-    string toString() {
-        string s;
-        if(isConst) s ~= "const ";
-        if(isSigned) s ~= "signed ";
-        if(isUnsigned) s ~= "unsigned ";
-        if(isVolatile) s ~= "volatile ";
-        if(isRestrict) s ~= "restrict ";
-        if(isUnaligned) s ~= "__unaligned ";
         return s;
     }
 }

@@ -15,9 +15,11 @@ public:
         buf.add("  Original file: %s\n", cfile.filename);
         buf.add("*/\n\n");
 
-        buf.add("#if __STDC_VERSION__ < 202311L // C23\n");
-        buf.add("#include <stdbool.h>\n");
-        buf.add("#endif // C23\n");
+        // buf.add("//__ec_ignore_start__\n");
+        // buf.add("#if __STDC_VERSION__ < 202311L // C23\n");
+        // buf.add("#include <stdbool.h>\n");
+        // buf.add("#endif // C23\n");
+        // buf.add("//__ec_ignore_end__\n");
 
         foreach(ch; cfile.children) {
             
@@ -48,7 +50,7 @@ private:
         bool addLineComment = n.parent.isA!CFile && n.isA!Stmt;
         bool addNewLine = true;
         bool isBlockStmt = estmt.isOneOf(
-            EStmt.SCOPE, EStmt.FUNC, EStmt.IF, EStmt.FOR, EStmt.WHILE
+            EStmt.SCOPE, EStmt.FUNC, EStmt.IF, EStmt.FOR, EStmt.WHILE, EStmt.SWITCH
         );
         if(auto func = n.as!Function) {
             isBlockStmt = func.hasBody;
@@ -80,19 +82,20 @@ private:
     void newLine() {
         buf.add("\n%s", indent);
     }
-    void openScope() {
-        buf.add(" {");
+    void openScope(bool brace = true) {
+        buf.add(" ");
+        if(brace) buf.add("{");
         indent ~= "    ";
         newLine();
     }
-    void closeScope() in {
+    void closeScope(bool brace = true) in {
         assert(indent.length >= 4);
         assert(buf.length >= 4);
         assert(buf[$-4..$] == "    ");
     } do {
         indent.length -= 4;
         buf.sub(4);
-        buf.add("}");
+        if(brace) buf.add("}");
     }
 
     void generate(Stmt stmt) {
@@ -249,23 +252,24 @@ private:
         buf.add("if(");
         generate(if_.condition());
         buf.add(")");
-        openScope();
+
+        openScope(if_.hasThenBraces);
 
         foreach(s; if_.thenStmts()) {
             generate(s);
             endStmt(s);
         }
-        closeScope();
+        closeScope(if_.hasThenBraces);
 
         if(if_.hasElse()) {
             buf.add(" else");
-            openScope();
+            openScope(if_.hasElseBraces);
 
             foreach(s; if_.elseStmts()) {
                 generate(s);
                 endStmt(s);
             }
-            closeScope();
+            closeScope(if_.hasElseBraces);
         }
     }
     void generate(Index i) {
@@ -383,7 +387,10 @@ private:
         closeScope();
     }
     void generate(StringLiteral s) {
-        buf.add("\"%s\"", s.value);
+        foreach(i, lit; s.values) {
+            if(i > 0) buf.add(" ");
+            buf.add("%s", lit);
+        }
     }
     void generate(Switch s) {
         buf.add("switch(");
@@ -570,9 +577,11 @@ private:
     }
     void generate(TypeRef tr) {
         if(tr.hasChildren()) {
+            buf.add("%s", tr.modifiers);
             generate(tr.first().as!Stmt);
             buf.add("%s", tr.getPtrString());
         } else {
+            
             buf.add(tr.toString());
         }
     }

@@ -125,7 +125,7 @@ struct _timespec64 {
 
 int __cdecl _timespec64_get(struct _timespec64* _Ts, int _Base);
 
-static __inline int __cdecl timespec_get(struct timespec* const _Ts, int const _Base) {
+static __inline int __cdecl timespec_get(struct timespec* const _Ts, const int _Base) {
     return _timespec64_get((struct _timespec64*)_Ts, _Base);
 }
 
@@ -166,9 +166,9 @@ typedef void* const __cdecl barbaz(int);
 // function declaration used as a type
 typedef barbaz *PEXCEPTION_ROUTINE;
 
-typedef int (__cdecl* _CoreCrtSecureSearchSortCompareFunction)(void*, void const*, void const*);
-void* __cdecl bsearch_s(void const* _Key,
-                        void const* _Base,
+typedef int (__cdecl* _CoreCrtSecureSearchSortCompareFunction)(void*, const void*, const void*);
+void* __cdecl bsearch_s(const void* _Key,
+                        const void* _Base,
                         long long   _NumOfElements,
                         long long   _SizeOfElements,
                         _CoreCrtSecureSearchSortCompareFunction _CompareFunction,

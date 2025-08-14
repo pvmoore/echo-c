@@ -11,6 +11,8 @@ import ec.all;
 final class If : Stmt {
 public:
     int numThenExprs; 
+    bool hasThenBraces; // true if thenExprs are in a brace scope
+    bool hasElseBraces; // true if elseExprs are in a brace scope
 
     this(EStmt estmt, Location location) {
         super(estmt, location);

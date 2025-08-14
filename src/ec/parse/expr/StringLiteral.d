@@ -2,9 +2,12 @@ module ec.parse.expr.StringLiteral;
 
 import ec.all;
 
+/**
+ * StringLiteral
+ */
 final class StringLiteral : Expr {
 public:
-    string value;
+    string[] values;    // consecutive string literals 
 
     this(EStmt estmt, Location location) {
         super(estmt, location);
@@ -13,6 +16,6 @@ public:
     override int precedence() { return 15; }
 
     override string toString() {
-        return "\"%s\"".format(value);
+        return "%s".format(values);
     }
 }

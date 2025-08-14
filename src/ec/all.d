@@ -64,6 +64,7 @@ import ec.parse.stmt.Var;
 import ec.parse.stmt.While;
 
 import ec.parse.type.ArrayType;
+import ec.parse.type.EType;
 import ec.parse.type.FunctionPtr;
 import ec.parse.type.SimpleType;
 import ec.parse.type.Type;
@@ -72,9 +73,11 @@ import ec.parse.type.TypeRef;
 import ec.parse.CallingConvention;
 import ec.parse.ExprParser;
 import ec.parse.Operator;
+import ec.parse.PtrFlags;
 import ec.parse.StmtParser;
 import ec.parse.StorageClass;
 import ec.parse.SyntaxError;
+import ec.parse.TypeModifiers;
 import ec.parse.TypeParser;
 
 import common.utils : isOneOf, as, isA, throwIf, todo, removeAt, indexOf, containsKey, repeat;

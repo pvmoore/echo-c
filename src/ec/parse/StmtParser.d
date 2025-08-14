@@ -11,7 +11,7 @@ void parseCFile(CFile cfile) {
     int pos = 0;
 
     while(!tokens.isEof()) {
-        log("parseStmt %s %s", count, tokens.token());
+        //log("parseStmt %s %s", count, tokens.token());
         parseStmt(cfile, tokens);
         
         throwIf(tokens.pos == pos, "we made no progress %s", tokens.token());
@@ -22,7 +22,6 @@ void parseCFile(CFile cfile) {
     log("done");
 }
 void parseStmt(Node parent, Tokens tokens) {
-    log("parseStmt %s", tokens.token());
 
     if(tokens.kind() == TKind.SEMI_COLON) {
         // Empty statement
@@ -67,6 +66,8 @@ void parseStmt(Node parent, Tokens tokens) {
 
         parseVar(parent, tokens, t.type, storageClass);
         return;
+    } else {
+        log("parseStmt: not a type");
     }
 
     switch(tokens.kind()) {
@@ -300,6 +301,7 @@ void parseIf(Node parent, Tokens tokens) {
     tokens.skip(TKind.RPAREN);
 
     if(tokens.matches(TKind.LBRACE)) {
+        if_.hasThenBraces = true;
         tokens.next();
         while(!tokens.isEof() && !tokens.matches(TKind.RBRACE)) {
             parseStmt(if_, tokens);
@@ -314,6 +316,7 @@ void parseIf(Node parent, Tokens tokens) {
     if(tokens.matches("else")) {
         tokens.next();
         if(tokens.matches(TKind.LBRACE)) {
+            if_.hasElseBraces = true;
             tokens.next();
             while(!tokens.isEof() && !tokens.matches(TKind.RBRACE)) {
                 parseStmt(if_, tokens);
@@ -515,65 +518,6 @@ void parsePragmaWarning(Node parent, Tokens tokens) {
     tokens.skip(TKind.RPAREN);
     pragma_.data.warnings ~= warning;
 }
-StorageClass parseStorageClass(Tokens tokens) {
-    StorageClass storageClass;
-    while(true) {
-        if(tokens.matches("extern")) {
-            storageClass.isExtern = true;
-            tokens.next();
-        } else if(tokens.matches("static")) {
-            storageClass.isStatic = true;
-            tokens.next();
-        } else if(tokens.matches("__inline") || tokens.matches("inline")) {
-            storageClass.inline = true;
-            tokens.next();
-        } else if(tokens.matches("__forceinline")) {
-            storageClass.forceInline = true;
-            tokens.next();
-        } else if(tokens.matches("__declspec")) {
-            tokens.next();
-            tokens.skip(TKind.LPAREN);
-
-            if(tokens.matches("noreturn")) {
-                tokens.skip("noreturn");
-                storageClass.__declspec_noreturn = true;
-            } else if(tokens.matches("dllimport")) {
-                tokens.skip("dllimport");
-                storageClass.__declspec_dllimport = true;
-            } else if(tokens.matches("dllexport")) {
-                tokens.skip("dllexport");
-                storageClass.__declspec_dllexport = true;
-            } else if(tokens.matches("noinline")) {
-                tokens.skip("noinline");
-                storageClass.__declspec_noinline = true;
-            } else if(tokens.matches("deprecated")) {
-                tokens.skip("deprecated");
-                storageClass.__declspec_deprecated = true;
-                if(tokens.matches(TKind.LPAREN)) {
-                    tokens.skip(TKind.LPAREN);
-                    while(!tokens.matches(TKind.RPAREN)) {
-                        storageClass.deprecationMsg ~= tokens.text(); 
-                        tokens.next();
-                    }
-                    tokens.skip(TKind.RPAREN);
-                }
-            } else if(tokens.matches("allocator")) {
-                tokens.skip("allocator");
-                storageClass.__declspec_allocator = true;
-            } else if(tokens.matches("restrict")) {
-                tokens.skip("restrict");
-                storageClass.__declspec_restrict = true;    
-            } else {
-                todo("unsupported __declspec %s".format(tokens.text()));
-            }
-            tokens.skip(TKind.RPAREN);
-        } else {
-            break;
-        }
-    }
-    return storageClass;
-}
-
 
 /**
  * 'return' [ Expr ] ';'
@@ -623,8 +567,6 @@ void parseTypedef(Node parent, Tokens tokens) {
         td.name = tokens.text(); tokens.next();
     }
 
-    log("typedef %s name = %s", td.type, td.name);
-
     parent.getCFile().registerTypedef(td);
 
     // subsequent declarations
@@ -637,10 +579,10 @@ void parseTypedef(Node parent, Tokens tokens) {
         // Clone the type and remove the pointers
         auto type = td.type.clone();
 
-        // If any qualifiers are specified then they replace the original qualifiers
-        TypeQualifiers qualifiers = parseQualifiers(tokens);
-        if(qualifiers.any()) {
-            type.qualifiers = qualifiers;
+        // If any qualifiers are specified then they replace the original modifiers
+        TypeModifiers modifiers = parseModifiers(tokens);
+        if(modifiers.any()) {
+            type.modifiers = modifiers;
         }
 
         // Add pointer information
@@ -709,10 +651,10 @@ void parseVar(Node parent, Tokens tokens, Type type, StorageClass storageClass) 
         // Clone the type and remove the pointers
         type = type.clone();
 
-        // If any qualifiers are specified then they replace the original qualifiers
-        TypeQualifiers qualifiers = parseQualifiers(tokens);
-        if(qualifiers.any()) {
-            type.qualifiers = qualifiers;
+        // If any modifiers are specified then they replace the original modifiers
+        TypeModifiers modifiers = parseModifiers(tokens);
+        if(modifiers.any()) {
+            type.modifiers = modifiers;
         }
 
         // Add pointer information

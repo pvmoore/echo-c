@@ -22,7 +22,7 @@ public:
     override Type clone() {
         ArrayType t = new ArrayType();
         t.ptrs = ptrs.dup;
-        t.qualifiers = qualifiers;
+        t.modifiers = modifiers;
         t.varName = varName;
         return t;
     }

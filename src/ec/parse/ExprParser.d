@@ -150,7 +150,6 @@ void parseRHS(Node parent, Tokens tokens) {
     }
 }
 
-
 Expr attachAndRead(Node parent, Expr newExpr, Tokens tokens, bool andRead) {
 
     Node prev = parent;
@@ -410,14 +409,15 @@ void parsePostfix(Node parent, Tokens tokens) {
 }
 
 /**
- * "string" "append me"
+ * "string" "string" etc...
  */
 void parseStringLiteral(Node parent, Tokens tokens) {
     StringLiteral str = tokens.make!StringLiteral();
     parent.add(str);
 
+    // Consume all consecutive string literals
     while(tokens.matches(TKind.STRING)) {
-        str.value ~= tokens.text()[1..$-1]; 
+        str.values ~= tokens.text(); 
         tokens.next();
     }
 }

@@ -21,7 +21,7 @@ public:
     override Type clone() {
         FunctionPtr t = new FunctionPtr();
         t.ptrs = ptrs.dup;
-        t.qualifiers = qualifiers;
+        t.modifiers = modifiers;
         t.varName = varName;
         t.params = params.dup;
         t.returnType = returnType;

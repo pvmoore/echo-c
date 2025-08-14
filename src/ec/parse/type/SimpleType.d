@@ -10,11 +10,11 @@ final class SimpleType : Type {
     override Type clone() {
         SimpleType t = new SimpleType(etype);
         t.ptrs = ptrs.dup;
-        t.qualifiers = qualifiers;
+        t.modifiers = modifiers;
         return t;
     }
 
     override string toString() {
-        return "%s%s%s".format(qualifiers, stringOf(etype), getPtrString());
+        return "%s%s%s".format(modifiers, stringOf(etype), getPtrString());
     }
 }

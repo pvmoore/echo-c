@@ -28,7 +28,7 @@ final class TypeRef : Type {
         t.typeRef = typeRef;
         t.nodeRef = nodeRef;
         t.ptrs = ptrs.dup;
-        t.qualifiers = qualifiers;
+        t.modifiers = modifiers;
         return t;
     }
 
@@ -44,8 +44,8 @@ final class TypeRef : Type {
                 return name;
             }
             string t = "%s".format(etype).toLower();
-            return "%s%s %s%s".format(qualifiers, t, name, getPtrString());
+            return "%s%s %s%s".format(modifiers, t, name, getPtrString());
         }
-        return "%s%s%s".format(qualifiers, name, getPtrString());
+        return "%s%s%s".format(modifiers, name, getPtrString());
     }
 }

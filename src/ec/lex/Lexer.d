@@ -311,10 +311,6 @@ private:
         }
         assert(peek()=='"');
         pos++;
-
-        if(peek()=='z') {
-            pos++;
-        }
         addToken();
     }
     void consumeChar() {

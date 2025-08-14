@@ -19,12 +19,13 @@ Tuple!(bool, "result", Type, "type", int, "pos") isType(Node parent, Tokens toke
 Type parseType(Node parent, Tokens tokens, bool required = true) {
     log("parseType: %s", tokens.token());
 
-    Typedef td = parent.as!Typedef; // this will be null if parent is not a typedef
+    // this will be null if parent is not a typedef
+    Typedef td = parent.as!Typedef; 
 
-    // Parse the qualifiers on the left side of the type
-    TypeQualifiers q = parseQualifiers(tokens);
+    // Parse the modifiers on the left side of the type
+    TypeModifiers q = parseModifiers(tokens);
 
-    Type type = parseSimpleType(tokens, q);
+    Type type = parseSimpleType(tokens);
 
     if(!type && tokens.matches("struct")) {
         type = parseStruct(tokens);
@@ -53,11 +54,11 @@ Type parseType(Node parent, Tokens tokens, bool required = true) {
     }
     assert(type);
 
-    // Parse the qualifiers on the right side of the type. These are equivalent:
+    // Parse the modifiers on the right side of the type. These are equivalent:
     //   <TYPE> const volatile unsigned signed 
     //   const volatile unsigned signed <TYPE>
-    q.mergeFrom(parseQualifiers(tokens));
-    type.qualifiers = q;
+    type.modifiers.mergeFrom(q);
+    type.modifiers.mergeFrom(parseModifiers(tokens));
 
     // const*volatile*restrict***
     type.ptrs = parsePtrFlags(tokens);
@@ -77,6 +78,9 @@ Type parseType(Node parent, Tokens tokens, bool required = true) {
     if(tokens.matches(TKind.IDENTIFIER, TKind.LSQUARE)) {
         // Switch type to an ArrayType with the current type as the element type
         type = parseArrayType(parent, tokens, type);
+        if(td !is null) {
+            td.nameIsEmbedded = true;
+        }
     }
 
     // Type (*name)(Type, Type, ...)
@@ -93,56 +97,10 @@ Type parseType(Node parent, Tokens tokens, bool required = true) {
     return type;
 }
 
-PtrFlags[] parsePtrFlags(Tokens tokens) {
-    PtrFlags[] flags;
-
-    while(tokens.kind() == TKind.STAR) {
-        tokens.next();
-
-        PtrFlags flag = PtrFlags.STD; 
-        lp:while(true) {
-            switch(tokens.text()) {
-                case "const": flag |= PtrFlags.CONST; break;
-                case "volatile": flag |= PtrFlags.VOLATILE; break;
-                case "restrict": flag |= PtrFlags.RESTRICT; break;
-                case "_ptr32":
-                case "__ptr32": flag |= PtrFlags.PTR32; break;
-                case "_ptr64":
-                case "__ptr64": flag |= PtrFlags.PTR64; break;
-                case "_unaligned":
-                case "__unaligned": flag |= PtrFlags.UNALIGNED; break;
-                default: break lp;
-            }
-            tokens.next();
-        } 
-
-        flags ~= flag;  // add a pointer level
-    }
-    return flags;
-}
-
-TypeQualifiers parseQualifiers(Tokens tokens) {
-    TypeQualifiers q;
-
-    while(true) {
-        switch(tokens.text()) {
-            case "const": q.isConst = true; tokens.next(); break;
-            case "signed": q.isSigned = true; tokens.next(); break;
-            case "unsigned": q.isUnsigned = true; tokens.next(); break;
-            case "volatile": q.isVolatile = true; tokens.next(); break;
-            case "restrict": q.isRestrict = true; tokens.next(); break;
-            case "_unaligned":
-            case "__unaligned": q.isUnaligned = true; tokens.next(); break;
-            default: return q;
-        }
-    }
-    assert(false);
-}
-
 //──────────────────────────────────────────────────────────────────────────────────────────────────
 private:
 
-Type parseSimpleType(Tokens tokens, ref TypeQualifiers q) {
+Type parseSimpleType(Tokens tokens) {
     Type t;
     if(tokens.kind() == TKind.ELIPSIS) {
         t = new SimpleType(EType.VARARG);
@@ -217,8 +175,14 @@ Type parseFunctionDecl(Tokens tokens, Type returnType) {
     return rt;
 }
 
+/**
+ * STRUCT ::= 'struct' [ modifiers ] [ name ] [ BODY ]
+ * BODY   ::= '{' { Stmt } '}'
+ */
 Type parseStruct(Tokens tokens) {
     tokens.skip("struct");
+
+    auto modifiers = parseModifiers(tokens);
 
     string name;
     if(tokens.matches(TKind.IDENTIFIER)) {
@@ -226,6 +190,7 @@ Type parseStruct(Tokens tokens) {
     }
 
     TypeRef type = new TypeRef(name, EType.STRUCT);
+    type.modifiers = modifiers;
 
     if(tokens.matches(TKind.LBRACE)) {
         tokens.next();
@@ -234,6 +199,7 @@ Type parseStruct(Tokens tokens) {
         Struct struct_ = tokens.make!Struct();
         struct_.name = type.name;
         struct_.hasBody = true;
+
         type.nodeRef = struct_;
 
         type.add(struct_);
@@ -249,8 +215,14 @@ Type parseStruct(Tokens tokens) {
     return type;
 }
 
+/**
+ * UNION ::= 'union' [ modifiers ] [ name ] [ BODY ]
+ * BODY   ::= '{' { Stmt } '}'
+ */
 Type parseUnion(Tokens tokens) {
     tokens.skip("union");
+
+    auto modifiers = parseModifiers(tokens);
 
     string name;
     if(tokens.matches(TKind.IDENTIFIER)) {
@@ -258,6 +230,7 @@ Type parseUnion(Tokens tokens) {
     }
 
     TypeRef type = new TypeRef(name, EType.UNION);
+    type.modifiers = modifiers;
 
     if(tokens.matches(TKind.LBRACE)) {
         tokens.next();
@@ -266,6 +239,7 @@ Type parseUnion(Tokens tokens) {
         Union union_ = tokens.make!Union();
         union_.name = type.name;
         union_.hasBody = true;
+
         type.nodeRef = union_;
 
         type.add(union_);
@@ -284,12 +258,15 @@ Type parseUnion(Tokens tokens) {
 Type parseEnum(Tokens tokens) {
     tokens.skip("enum");
 
+    auto modifiers = parseModifiers(tokens);
+
     string name;
     if(tokens.matches(TKind.IDENTIFIER)) {
         name = tokens.text(); tokens.next();
     }
 
     TypeRef type = new TypeRef(name, EType.ENUM);
+    type.modifiers = modifiers;
 
     if(tokens.matches(TKind.LBRACE)) {
         tokens.next();
@@ -298,6 +275,7 @@ Type parseEnum(Tokens tokens) {
         Enum enum_ = tokens.make!Enum();
         enum_.name = type.name;
         enum_.hasBody = true;
+
         type.nodeRef = enum_;
 
         type.add(enum_);
