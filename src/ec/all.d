@@ -73,6 +73,7 @@ import ec.parse.type.TypeRef;
 import ec.parse.CallingConvention;
 import ec.parse.ExprParser;
 import ec.parse.Operator;
+import ec.parse.PragmaParser;
 import ec.parse.PtrFlags;
 import ec.parse.StmtParser;
 import ec.parse.StorageClass;
@@ -80,7 +81,7 @@ import ec.parse.SyntaxError;
 import ec.parse.TypeModifiers;
 import ec.parse.TypeParser;
 
-import common.utils : isOneOf, as, isA, throwIf, todo, removeAt, indexOf, containsKey, repeat;
+import common.utils : isOneOf, as, isA, throwIf, todo, removeAt, indexOf, containsKey, repeat, className;
 import common.io    : Ansi, ansiWrap;
 import common       : StringBuffer;
 

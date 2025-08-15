@@ -3,13 +3,13 @@ module ec.parse.CallingConvention;
 import ec.all;
 
 enum CallingConvention {
-    DEFAULT,    // default calling convention
-    CDECL,      // __cdecl caller cleans the stack
-    CLRCALL,    // __clrcall
-    STDCALL,    // __stdcall win32 callee cleans the stack
-    FASTCALL,   // __fastcall 
-    THISCALL,   // __thiscall
-    VECTORCALL, // __vectorcall
+    DEFAULT = 0,    // default calling convention
+    CDECL,          // __cdecl caller cleans the stack
+    CLRCALL,        // __clrcall
+    STDCALL,        // __stdcall win32 callee cleans the stack
+    FASTCALL,       // __fastcall 
+    THISCALL,       // __thiscall
+    VECTORCALL,     // __vectorcall
 }
 
 CallingConvention parseCallingConvention(Tokens tokens) {

@@ -15,8 +15,6 @@ enum Operator {
     SHL,                // <<
     SHR,                // >>
 
-    ASSIGN,             // =
-
     PREFIX_POS,         // +
     PREFIX_NEG,         // -
     PREFIX_INC,         // ++
@@ -34,6 +32,18 @@ enum Operator {
     BOOL_GTE,           // >=
     BOOL_AND,           // &&
     BOOL_OR,            // ||
+
+    ASSIGN,             // =
+    ADD_ASSIGN,         // +=
+    SUB_ASSIGN,         // -=
+    MUL_ASSIGN,         // *=
+    DIV_ASSIGN,         // /=
+    MOD_ASSIGN,         // %=
+    BIT_AND_ASSIGN,     // &=
+    BIT_OR_ASSIGN,      // |=
+    BIT_XOR_ASSIGN,     // ^=
+    SHL_ASSIGN,         // <<=
+    SHR_ASSIGN,         // >>=
 }
 
 string stringOf(Operator op) {
@@ -57,8 +67,6 @@ string stringOf(Operator op) {
         case POSTFIX_INC: return "++";
         case POSTFIX_DEC: return "--";
 
-        case ASSIGN: return "=";
-
         case BOOL_NOT: return "!";
         case BOOL_EQ: return "==";
         case BOOL_NEQ: return "!=";
@@ -68,6 +76,18 @@ string stringOf(Operator op) {
         case BOOL_GTE: return ">=";
         case BOOL_AND: return "&&";
         case BOOL_OR: return "||";
+
+        case ASSIGN: return "=";
+        case ADD_ASSIGN: return "+=";
+        case SUB_ASSIGN: return "-=";
+        case MUL_ASSIGN: return "*=";
+        case DIV_ASSIGN: return "/=";
+        case MOD_ASSIGN: return "%=";
+        case BIT_AND_ASSIGN: return "&=";
+        case BIT_OR_ASSIGN: return "|=";
+        case BIT_XOR_ASSIGN: return "^=";
+        case SHL_ASSIGN: return "<<=";
+        case SHR_ASSIGN: return ">>="; 
     }
 }
 
@@ -86,8 +106,6 @@ Operator parseInfixOperator(Tokens tokens) {
         case TKind.LANGLE2: op = Operator.SHL; break;
         case TKind.RANGLE2: op = Operator.SHR; break;
 
-        case TKind.EQUALS: op = Operator.ASSIGN; break;
-
         case TKind.LANGLE: op = Operator.BOOL_LT; break;
         case TKind.RANGLE: op = Operator.BOOL_GT; break;
         case TKind.EXCLAMATION_MARK: op = Operator.BOOL_NOT; break;
@@ -98,6 +116,17 @@ Operator parseInfixOperator(Tokens tokens) {
         case TKind.AMPERSAND2: op = Operator.BOOL_AND; break;
         case TKind.PIPE2: op = Operator.BOOL_OR; break;
 
+        case TKind.EQUALS: op = Operator.ASSIGN; break;
+        case TKind.PLUS_EQ: op = Operator.ADD_ASSIGN; break;
+        case TKind.MINUS_EQ: op = Operator.SUB_ASSIGN; break;
+        case TKind.STAR_EQ: op = Operator.MUL_ASSIGN; break;
+        case TKind.FWD_SLASH_EQ: op = Operator.DIV_ASSIGN; break;
+        case TKind.PERCENT_EQ: op = Operator.MOD_ASSIGN; break;
+        case TKind.AMPERSAND_EQ: op = Operator.BIT_AND_ASSIGN; break;
+        case TKind.PIPE_EQ: op = Operator.BIT_OR_ASSIGN; break;
+        case TKind.CARET_EQ: op = Operator.BIT_XOR_ASSIGN; break;
+        case TKind.LANGLE2_EQ: op = Operator.SHL_ASSIGN; break;
+        case TKind.RANGLE2_EQ: op = Operator.SHR_ASSIGN; break;
 
         default:
             syntaxError(tokens.cfile, tokens.token(), "Unexpected infix operator '%s'".format(tokens.kind()));
@@ -194,6 +223,16 @@ int precedenceOf(Operator op) {
         //     return 13;
 
         case ASSIGN: 
+        case ADD_ASSIGN: 
+        case SUB_ASSIGN: 
+        case MUL_ASSIGN: 
+        case DIV_ASSIGN: 
+        case MOD_ASSIGN: 
+        case BIT_AND_ASSIGN: 
+        case BIT_OR_ASSIGN: 
+        case BIT_XOR_ASSIGN: 
+        case SHL_ASSIGN: 
+        case SHR_ASSIGN:
             return 14;
     }
 }

@@ -138,6 +138,7 @@ private:
         }
     }
     void generate(Type type) {
+        //buf.add("/* %s */", className(type));
         if(TypeRef tr = type.as!TypeRef) {
             generate(tr);
         } else if(SimpleType st = type.as!SimpleType) {
@@ -443,7 +444,7 @@ private:
             buf.add(",%s", td.type.getPtrString());
         }
 
-        if(!td.nameIsEmbedded) {
+        if(!td.type.hasEmbeddedName()) {
             buf.add(" %s", td.name);
         }
     }
@@ -454,6 +455,8 @@ private:
     void generate(Var var) {
         buf.add("%s", var.storageClass);
 
+        // type
+
         // Generate the type if this Var is on its own or it is the first of many in the same stmt
         if(!var.inList || var.firstInList) {
             generate(var.type);
@@ -463,18 +466,20 @@ private:
             buf.add(",%s", var.type.getPtrString());
         } 
 
-        if(var.type.isA!ArrayType) {
-            // If this is an array type, we will generate the var name and dimensions later
-            // so we don't add it here
+        // name
+        if(var.type.isA!ArrayType || var.type.isA!FunctionPtr) {
+            // If this is an ArrayType or FunctionPtr we will generate the var name and dimensions elsewhere
         } else if(var.name) {
             buf.add(" %s", var.name);
         }
 
+        // bitfield
         if(var.hasBitfield) {
             buf.add(" : ");
             generate(var.bitfield());
         }
         
+        // intialiser
         if(var.hasInitialiser) {
             buf.add(" = ");
             generate(var.initialiser());
@@ -500,6 +505,12 @@ private:
     // Note that this will also generate the var name if there is one
     void generate(ArrayType at) {
         generate(at.elementType);
+
+        if(at.elementType.isA!FunctionPtr) {
+            // FunctionPtr has already generated the name and dimensions
+            return;
+        }
+
         if(at.varName) {
             buf.add(" %s", at.varName);
         }
@@ -518,7 +529,23 @@ private:
     void generate(FunctionPtr fp) {
         generate(fp.returnType);
         string cc = stringOf(fp.callingConvention);
-        buf.add("(%s%s %s)(", cc, fp.getPtrString(), fp.varName);
+        buf.add("(%s%s %s", cc, fp.getPtrString(), fp.varName);
+
+        // Add array dimensions if this is an array of function pointers
+        if(auto at = fp.parent.as!ArrayType) {
+            foreach(d; at.dimensionExprs()) {
+                buf.add("[");
+                auto num = d.as!Number;
+                if(num && "-1" == num.stringValue) {
+                    // this is an empty dimension
+                } else {
+                    generate(d);
+                }
+                buf.add("]");
+            }
+        }
+
+        buf.add(")(");
 
         foreach(i, p; fp.params) {
             if(i > 0) buf.add(", ");

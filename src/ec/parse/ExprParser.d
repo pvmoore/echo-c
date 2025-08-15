@@ -47,10 +47,10 @@ void parseLHS(Node parent, Tokens tokens) {
             return;
         case TKind.LPAREN:
             // Handle cast
-            auto t = isType(parent, tokens, 1);
-            if(t.result) {
-                tokens.pos = t.pos;
-                parseCast(parent, tokens, t.type);
+            auto tan = isType(parent, tokens, 1);
+            if(tan.hasType()) {
+                tokens.pos = tan.pos;
+                parseCast(parent, tokens, tan.type);
             } else {
                 parseParens(parent, tokens);
             }
@@ -111,6 +111,15 @@ void parseRHS(Node parent, Tokens tokens) {
             case TKind.RANGLE2:     // >>
             case TKind.LANGLE_EQ:   // <=
             case TKind.RANGLE_EQ:   // >=
+
+            case TKind.STAR_EQ:     // *=
+            case TKind.FWD_SLASH_EQ:// /=
+            case TKind.PERCENT_EQ:  // %=
+            case TKind.PLUS_EQ:     // +=
+            case TKind.MINUS_EQ:    // -=
+            case TKind.AMPERSAND_EQ:// &=
+            case TKind.PIPE_EQ:     // |=
+            case TKind.CARET_EQ:    // ^=
             case TKind.LANGLE2_EQ:  // <<=
             case TKind.RANGLE2_EQ:  // >>=
             case TKind.EQUALS2:     // ==

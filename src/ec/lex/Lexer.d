@@ -86,8 +86,6 @@ public:
                 case '&':
                     if(peek(1) == '=') {
                         addToken(TKind.AMPERSAND_EQ);
-                    } else if(peek(1) == '&' && peek(2) == '=') {
-                        addToken(TKind.AMPERSAND2_EQ);
                     } else if(peek(1) == '&') {
                         addToken(TKind.AMPERSAND2);
                     } else {
@@ -97,8 +95,6 @@ public:
                 case '|':
                     if(peek(1) == '=') {
                         addToken(TKind.PIPE_EQ);
-                    } else if(peek(1) == '|' && peek(2) == '=') {
-                        addToken(TKind.PIPE2_EQ);
                     } else if(peek(1) == '|') {
                         addToken(TKind.PIPE2);
                     } else {

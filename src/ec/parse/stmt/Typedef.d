@@ -9,9 +9,6 @@ import ec.all;
 final class Typedef : Stmt {
     Type type;
     string name;
-    bool nameIsEmbedded; // true if the name is embedded in the type 
-                         // eg. void(*name)();
-                         // or void name(int);
 
     // Several Typedefs declared on the same line eg. typedef signed char INT8, *PINT8;
     bool firstInList;   // true if this is the first in the list

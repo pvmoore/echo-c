@@ -43,11 +43,11 @@ public:
         return pos >= tokens.length;
     }
     void skip(TKind k) {
-        if(kind() != k) syntaxError(cfile, token(), "Expected '%s' got '%s'".format(stringOf(k), kind().stringOf()));
+        if(kind() != k) syntaxError(cfile, token(), "Expected '%s' got '%s'".format(stringOf(k), token()));
         pos++;
     }
     void skip(string s) {
-        if(text() != s) syntaxError(cfile, token(), "Expected '%s' got '%s'".format(s, text()));
+        if(text() != s) syntaxError(cfile, token(), "Expected '%s' got '%s'".format(s, token()));
         pos++;
     }
     void skipToNextLine() {
@@ -55,6 +55,47 @@ public:
         while(!isEof() && token().line == line) {
             pos++;
         }
+    }
+    /**
+     * Find the offset of the closing bracket for the opening bracket at the given offset.
+     * Returns -1 if not found.
+     *
+     * eg.
+     *     offsetOfOpeningBracket = 4 
+     *     | 
+     *     v
+     * blah(some{thing},[here])
+     * ^                      ^ 
+     * |                      | 
+     * pos                    return 23
+     */
+    int findClosingBracket(int offsetOfOpeningBracket) 
+    in {
+        assert(kind(offsetOfOpeningBracket) == TKind.LPAREN);
+    }
+    do {
+        int i = offsetOfOpeningBracket + 1;
+        int braceCount = 0;
+        int parensCount = 0;
+        int squareCount = 0;
+
+        lp:while(pos + i < tokens.length) {
+            switch(kind(i)) {
+                case TKind.NONE: break lp;
+                case TKind.LBRACE: braceCount++; break;
+                case TKind.LSQUARE: squareCount++; break;
+                case TKind.LPAREN: parensCount++; break;
+                case TKind.RBRACE: braceCount--; break;
+                case TKind.RSQUARE: squareCount--; break;
+                case TKind.RPAREN: 
+                    if(parensCount == 0) return i;
+                    parensCount--; 
+                    break;
+                default: break;
+            }
+            i++;
+        }
+        return -1;
     }
     bool matchesOneOf(Args...)(Args array) {
         static foreach(k; array) {

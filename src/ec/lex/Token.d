@@ -18,7 +18,7 @@ struct Token {
         string s;
         if(lengthOf(kind) == 0) {
             string t = text;
-            if(t.length > 20) t = t[0..20] ~ "...";
+            if(t.length > 30) t = t[0..30] ~ "...";
             t = t.replace("%s", "%%");
             s = format("%s:%s", t, kind);
         } else  {
@@ -80,25 +80,21 @@ enum TKind {
     AMPERSAND2, // &&
     PIPE2,      // ||
 
-    FWD_SLASH_EQ,
-    STAR_EQ,
-    PERCENT_EQ,
-    PLUS_EQ,
-    MINUS_EQ,
-    EQUALS2,    // ==
-    EXCLAMATION_MARK_EQ,
-    AMPERSAND_EQ,
-    PIPE_EQ,
-    CARET_EQ,
-    TILDE_EQ,
-    LANGLE_EQ,      // <=
-    RANGLE_EQ,      // >=
-    LANGLE2_EQ,     // <<=
-    RANGLE2_EQ,     // >>=
-    AMPERSAND2_EQ,  // &&=
-    PIPE2_EQ,       // ||=
-
-
+    FWD_SLASH_EQ,           // /=   
+    STAR_EQ,                // *=
+    PERCENT_EQ,             // %=
+    PLUS_EQ,                // +=
+    MINUS_EQ,               // -=
+    EQUALS2,                // ==
+    EXCLAMATION_MARK_EQ,    // !=
+    AMPERSAND_EQ,           // &=
+    PIPE_EQ,                // |=
+    CARET_EQ,               // ^=
+    TILDE_EQ,               // ~=
+    LANGLE_EQ,              // <=
+    RANGLE_EQ,              // >=
+    LANGLE2_EQ,             // <<=
+    RANGLE2_EQ,             // >>=
 }
 
 string stringOf(TKind t) {
@@ -158,8 +154,6 @@ string stringOf(TKind t) {
         case TKind.RANGLE_EQ: return ">=";
         case TKind.LANGLE2_EQ: return "<<=";
         case TKind.RANGLE2_EQ: return ">>=";
-        case TKind.AMPERSAND2_EQ: return "&&=";
-        case TKind.PIPE2_EQ: return "||=";
     }
 }
 
@@ -222,8 +216,6 @@ int lengthOf(TKind t) {
         case TKind.LANGLE2_EQ: 
         case TKind.RANGLE2_EQ: 
         case TKind.ELIPSIS:
-        case TKind.AMPERSAND2_EQ: 
-        case TKind.PIPE2_EQ:
             return 3;
     }
 }

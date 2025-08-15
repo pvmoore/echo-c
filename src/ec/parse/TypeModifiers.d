@@ -14,14 +14,18 @@ struct TypeModifiers {
     bool __declspec_dllimport;
     bool __declspec_dllexport;
     bool __declspec_deprecated;
-    bool __declspec_align;      
+    bool __declspec_align;   
+    bool __declspec_no_init_all;   
+    Pragma[] pragmas;           // 0..many __pragma declarations          
 
     string[] deprecationValue;  // may be set if __declspec_deprecated is true
-    uint alignValue;            // set if __declspec_align is true            
+    uint alignValue;            // set if __declspec_align is true   
 
     bool any() {
         return isConst || isSigned || isUnsigned || isVolatile || isUnaligned ||
-               __declspec_dllimport || __declspec_dllexport || __declspec_deprecated || __declspec_align;
+               __declspec_dllimport || __declspec_dllexport || __declspec_deprecated || __declspec_align || 
+               __declspec_no_init_all || 
+               pragmas.length > 0;
     }
 
     void mergeFrom(TypeModifiers other) {
@@ -34,8 +38,11 @@ struct TypeModifiers {
         __declspec_dllexport |= other.__declspec_dllexport;
         __declspec_deprecated |= other.__declspec_deprecated;
         __declspec_align |= other.__declspec_align;
+        __declspec_no_init_all |= other.__declspec_no_init_all;
+
         alignValue |= other.alignValue; 
         deprecationValue ~= other.deprecationValue;
+        pragmas ~= other.pragmas;
     }
 
     string toString() {
@@ -49,6 +56,10 @@ struct TypeModifiers {
         if(__declspec_dllexport) s ~= "__declspec(dllexport) ";
         if(__declspec_deprecated) s ~= "__declspec(deprecated%s)\n".format(deprecationValue.length > 0 ? "(%s)".format(deprecationValue.join(" ")) : "");
         if(__declspec_align) s ~= "__declspec(align(%s)) ".format(alignValue);
+        if(__declspec_no_init_all) s ~= "__declspec(no_init_all) ";
+        foreach(p; pragmas) {
+            s ~= "%s ".format(p.toString());
+        }
         return s;
     }
 }
@@ -66,6 +77,9 @@ TypeModifiers parseModifiers(Tokens tokens) {
             case "__unaligned": q.isUnaligned = true; tokens.next(); break;
             case "__declspec": 
                 parseDeclspec(tokens, q); 
+                break;
+            case "__pragma":
+                q.pragmas ~= parseAndReturnPragma(tokens); 
                 break;
             default: return q;
         }
@@ -102,8 +116,11 @@ void parseDeclspec(Tokens tokens, ref TypeModifiers q) {
         q.alignValue = tokens.textToInt(); tokens.next();
         tokens.skip(TKind.RPAREN);
         q.__declspec_align = true; 
+    } else if(tokens.matches("no_init_all")) {
+        tokens.skip("no_init_all");
+        q.__declspec_no_init_all = true;
     } else {
-        todo("unsupported __declspec %s".format(tokens.text()));
+        todo("unsupported __declspec %s".format(tokens.token()));
     }
     tokens.skip(TKind.RPAREN);
 }

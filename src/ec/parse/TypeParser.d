@@ -2,7 +2,18 @@ module ec.parse.TypeParser;
 
 import ec.all;
 
-Tuple!(bool, "result", Type, "type", int, "pos") isType(Node parent, Tokens tokens, int offset = 0) {
+struct ParseTypeResult {
+    Type type;
+    string name;
+    int pos;
+
+    bool hasType() { return type !is null; }
+    bool hasName() { return name !is null; }
+
+    string toString() { return "(%s) %s name=%s".format(className(type), type, name); }
+}
+
+ParseTypeResult isType(Node parent, Tokens tokens, int offset = 0) {
     log("isType: %s", tokens.token());
 
     tokens.pushState();
@@ -10,22 +21,19 @@ Tuple!(bool, "result", Type, "type", int, "pos") isType(Node parent, Tokens toke
 
     tokens.pos += offset;
 
-    if(Type t = parseType(parent, tokens, false)) {
-        return tuple!("result", "type", "pos")(true, t, tokens.pos);
-    }
-    return tuple!("result", "type", "pos")(false, null.as!Type, 0);
+    return parseType(parent, tokens, false);
 }
 
-Type parseType(Node parent, Tokens tokens, bool required = true) {
+ParseTypeResult parseType(Node parent, Tokens tokens, bool required = true) {
     log("parseType: %s", tokens.token());
 
-    // this will be null if parent is not a typedef
-    Typedef td = parent.as!Typedef; 
+    Type type;
+    string name;
 
     // Parse the modifiers on the left side of the type
     TypeModifiers q = parseModifiers(tokens);
 
-    Type type = parseSimpleType(tokens);
+    type = parseSimpleType(tokens);
 
     if(!type && tokens.matches("struct")) {
         type = parseStruct(tokens);
@@ -49,7 +57,7 @@ Type parseType(Node parent, Tokens tokens, bool required = true) {
         if(required) {
             syntaxError(tokens.cfile, tokens.token(), "Expected type, got %s".format(tokens.text()));
         } else {
-            return null;
+            return ParseTypeResult();
         }
     }
     assert(type);
@@ -61,44 +69,96 @@ Type parseType(Node parent, Tokens tokens, bool required = true) {
     type.modifiers.mergeFrom(parseModifiers(tokens));
 
     // const*volatile*restrict***
-    type.ptrs = parsePtrFlags(tokens);
+    type.ptrs ~= parsePtrFlags(tokens);
+
+    // Brackets are allowed here which makes the type look like a bit like a function ptr
+    //
+    // Type (*((*foo)))  (void);     -> Type  (**foo)(void)
+    // Type (* ((*foo)) (void) );    -> Type* (*foo)(void)
+    // Type ((*(*foo)));             -> Type** foo;
+    // Type (* ((*foo)));            -> Type** foo
+    //      ^
+    //      |
+    //    we are here
+    int skipParens = 0;
+    while(tokens.matches(TKind.LPAREN)) {
+
+        if(isFunctionPtr(tokens)) {
+            // Switch type to a function pointer type
+            auto tan = parseFunctionPtr(parent, tokens, type);
+
+            foreach(i; 0..skipParens) {
+                tokens.skip(TKind.RPAREN);
+            }
+            tan.pos = tokens.pos;
+
+            log("returning type = %s", tan);
+            return tan;
+
+        } else {
+            tokens.skip(TKind.LPAREN);
+            skipParens++;
+
+            // const*volatile*restrict***
+            type.ptrs ~= parsePtrFlags(tokens);
+        }
+    }
+
+    log("parseType: type = %s", ParseTypeResult(type, name, tokens.pos));
 
     // Type name(
     // Type decl name(
-    if(td !is null &&
+    if(parent.isA!Typedef &&
        (tokens.matches(TKind.IDENTIFIER, TKind.LPAREN) ||
         tokens.matches(TKind.IDENTIFIER, TKind.IDENTIFIER, TKind.LPAREN))) 
     {
         // Switch type to a function declaration type
-        type = parseFunctionDecl(tokens, type);
-        td.nameIsEmbedded = true;
-        return type;
+        auto tan = parseFunctionDecl(tokens, type);
+
+        foreach(i; 0..skipParens) {
+            tokens.skip(TKind.RPAREN);
+        }
+        tan.pos = tokens.pos;
+
+        log("returning function decl = %s", tan);
+        return tan;
     }
 
     if(tokens.matches(TKind.IDENTIFIER, TKind.LSQUARE)) {
         // Switch type to an ArrayType with the current type as the element type
-        type = parseArrayType(parent, tokens, type);
-        if(td !is null) {
-            td.nameIsEmbedded = true;
-        }
+        auto tan = parseArrayType(parent, tokens, type);
+        type = tan.type;
+        name = tan.name;
     }
 
-    // Type (*name)(Type, Type, ...)
-    if(tokens.matches(TKind.LPAREN)) {
-        // Switch type to a function pointer type
-        type = parseFunctionPtr(parent, tokens, type);
-        if(td !is null) {
-            td.nameIsEmbedded = true;
-        }
+    if(skipParens > 0 && tokens.matches(TKind.IDENTIFIER)) {
+        name = tokens.text(); tokens.next();
     }
 
-    log("returning type = %s", type);
+    foreach(i; 0..skipParens) {
+        tokens.skip(TKind.RPAREN);
+    }
 
-    return type;
+    log("returning type %s", ParseTypeResult(type, name, tokens.pos));
+
+    return ParseTypeResult(type, name, tokens.pos);
 }
 
 //──────────────────────────────────────────────────────────────────────────────────────────────────
 private:
+
+/**
+ * (*name)( { Type params } )
+ */
+bool isFunctionPtr(Tokens tokens) {
+    if(!tokens.matches(TKind.LPAREN)) return false;
+
+    int end = tokens.findClosingBracket(0);
+    if(end == -1) return false;
+
+    // Look for parameter list
+    return tokens.kind(end + 1) == TKind.LPAREN;
+}
 
 Type parseSimpleType(Tokens tokens) {
     Type t;
@@ -162,7 +222,7 @@ Type parseTypedef(Tokens tokens) {
 /**
  * Type [ cc ] name '(' { Type [ name ] } ')'
  */
-Type parseFunctionDecl(Tokens tokens, Type returnType) {
+ParseTypeResult parseFunctionDecl(Tokens tokens, Type returnType) {
 
     auto cc = parseCallingConvention(tokens);
 
@@ -172,7 +232,7 @@ Type parseFunctionDecl(Tokens tokens, Type returnType) {
     rt.add(fn);
     rt.nodeRef = fn;
 
-    return rt;
+    return ParseTypeResult(rt, fn.name, tokens.pos);
 }
 
 /**
@@ -316,34 +376,55 @@ Type parseEnum(Tokens tokens) {
  * void (*name[2])(int);
  * extern void (*signal(int, void(*)(int)))(int)
  */
-Type parseFunctionPtr(Node parent, Tokens tokens, Type returnType) {
-    tokens.skip(TKind.LPAREN);
+ParseTypeResult parseFunctionPtr(Node parent, Tokens tokens, Type returnType) {
+    log("parseFunctionPtr: return type = %s %s", returnType, tokens.token());
 
+    assert(tokens.matches(TKind.LPAREN));
+
+    ParseTypeResult result;
     FunctionPtr fp = new FunctionPtr();
+
+    // There may be more than one of these
+    int numParens = 0;
+    CallingConvention cc = CallingConvention.DEFAULT;
+
+    while(tokens.matches(TKind.LPAREN)) {
+        numParens++;
+        tokens.next();
+
+        if(auto cc2 = parseCallingConvention(tokens)) {
+            cc = cc2;
+        }
+        fp.ptrs ~= parsePtrFlags(tokens);
+    }
     
     // This is the Type we will return. It will be fp unless this is an array function pointer
     // in which case it will be an ArrayType with fp as the element type
-    Type typeToReturn = fp;
+    result.type = fp;
 
     fp.returnType = returnType;
-
-    fp.callingConvention = parseCallingConvention(tokens);
-    fp.ptrs = parsePtrFlags(tokens);
+    fp.callingConvention = cc;
 
     // Optional name if this is a parameter type
     if(tokens.kind() == TKind.IDENTIFIER) {
         fp.varName = tokens.text(); tokens.next();
+        result.name = fp.varName;
     } 
 
     if(tokens.kind() == TKind.LSQUARE) {
-        todo("parse array function pointer type");
 
-        typeToReturn = parseArrayType(parent, tokens, fp);
-        // At this point typeToReturn will be an ArrayType and 'fp' will be the element type of the array
+        auto tan = parseArrayType(parent, tokens, fp);
+        result.type = tan.type;
+        // At this point result.type will be an ArrayType and 'fp' will be the element type of the array
         // but we still need to parse the parameters
     }
 
-    tokens.skip(TKind.RPAREN);
+    // Usually there is 1 of these but there could be more
+    foreach(i; 0..numParens) {
+        tokens.skip(TKind.RPAREN);
+    }
+
+    // Parameters
     tokens.skip(TKind.LPAREN);
 
     auto p = tokens.make!Parens();
@@ -358,15 +439,15 @@ Type parseFunctionPtr(Node parent, Tokens tokens, Type returnType) {
 
     fp.params = p.children.as!(Var[]);
 
+    result.pos = tokens.pos;
     // Return either fp or the array type
-    return typeToReturn;
+    return result;
 }
 
 /**
  * Type { '[' [ Expr ] ']' }
  */
-Type parseArrayType(Node parent, Tokens tokens, Type type) {
-
+ParseTypeResult parseArrayType(Node parent, Tokens tokens, Type type) {
     log("parseArrayType: %s %s", type, tokens.token());
 
     ArrayType at = new ArrayType();
@@ -393,5 +474,5 @@ Type parseArrayType(Node parent, Tokens tokens, Type type) {
         tokens.skip(TKind.RSQUARE);
     }
 
-    return at;
+    return ParseTypeResult(at, at.varName, tokens.pos);
 }

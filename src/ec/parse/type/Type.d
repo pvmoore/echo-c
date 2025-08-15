@@ -18,21 +18,13 @@ public:
     }
 }
 
-/**
- * Extract the name from a FunctionPtr or ArrayType.
- */
-string extractVariableName(Type t) {
+bool hasEmbeddedName(Type t) {
     if(auto at = t.as!ArrayType) {
-        if(auto fp = at.elementType().as!FunctionPtr) {
-            return fp.varName;
-        } 
-        return at.varName;
+        return true;
     } else if(auto fp = t.as!FunctionPtr) {
-       return fp.varName;
+        return true;
     } else if(auto tr = t.as!TypeRef) {
-        if(tr.etype.isOneOf(EType.FUNCTION_DECL, EType.FUNCTION_PTR)) {
-            return tr.name;
-        }
+        if(tr.nodeRef) return tr.nodeRef.isA!Function; 
     }
-    return null;
+    return false;
 }

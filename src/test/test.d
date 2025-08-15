@@ -1,7 +1,10 @@
 module test.test;
 
-import std.stdio  : writefln, writeln;
-import std.format : format;
+import std.stdio    : writefln, writeln;
+import std.format   : format;
+import std.file     : dirEntries, SpanMode, exists, timeLastModified;
+import std.path     : baseName, stripExtension;
+
 import test.test_comparer;
 import ec;
 
@@ -45,8 +48,6 @@ EC testMiniVrt() {
 }
 
 void runTests() {
-    import std.file : dirEntries, SpanMode;
-    import std.path : baseName, stripExtension;
 
     writefln("Running tests ...");
 
@@ -76,13 +77,28 @@ void runTest(string filename) {
     ec.resolve();
     ec.generate();
 
-    string srcFilename    = ".target/test-data/%s.i".format(filename);
-    string targetFilename = ".target/test-data/%s.c".format(filename);
+    string srcFilename       = "resources/test-data/%s.c".format(filename);
+    string expectFile        = "resources/test-data/%s.expected.h".format(filename);
+    string truthFilename     = ".target/test-data/%s.i".format(filename);
+    string generatedFilename = ".target/test-data/%s.c".format(filename);
 
     auto comparer = new TestComparer();
 
-    writefln("Comparing %s -> %s", srcFilename, targetFilename);
-    if(comparer.compare(srcFilename, targetFilename)) {
+    // Use expect file as src
+    if(expectFile.exists()) {
+
+        auto srcTime    = timeLastModified(srcFilename);
+        auto expectTime = timeLastModified(expectFile);
+
+        if(srcTime > expectTime) {
+            throw new Exception("  Expect file may be stale: %s".format(expectFile));
+        }
+
+        truthFilename = expectFile;
+    }
+
+    writefln("Comparing %s -> %s", truthFilename, generatedFilename);
+    if(comparer.compare(truthFilename, generatedFilename)) {
         writefln("  Passed: %s", filename);
     } else {
         writefln("  Failed: %s", filename);

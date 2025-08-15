@@ -16,7 +16,7 @@ void parseCFile(CFile cfile) {
         
         throwIf(tokens.pos == pos, "we made no progress %s", tokens.token());
         pos = tokens.pos; 
-        if(count++ > 5800) break;
+        if(count++ > 6300) break;
 
     }
     log("done");
@@ -33,43 +33,6 @@ void parseStmt(Node parent, Tokens tokens) {
     // extern | static | __declspec
     StorageClass storageClass = parseStorageClass(tokens);
 
-    auto t = isType(parent, tokens);
-    if(t.result) {
-        log("parseStmt: found type %s", t.type);
-        // We found a type. Move forward ...
-        tokens.pos = t.pos;
-
-        // Type id (
-        // Type id id (
-        bool isFunc = tokens.matches(TKind.IDENTIFIER, TKind.LPAREN) || 
-                      tokens.matches(TKind.IDENTIFIER, TKind.IDENTIFIER, TKind.LPAREN);
-        if(isFunc) {
-            parseFunc(parent, tokens, t.type, storageClass);
-            return;
-        }
-
-        // This might be a Struct, Enum or Union definition
-        TypeRef tr = t.type.as!TypeRef;
-        if(tr && !tokens.matches(TKind.IDENTIFIER)) {
-            if(tr.hasChildren()) {
-                Stmt def = t.type.first().as!Stmt;
-                parent.add(def);
-                return;
-            } else {
-                // struct <name>;
-                // enum <name>;
-                // union <name>;
-                parent.add(tr);
-                return;
-            }
-        }
-
-        parseVar(parent, tokens, t.type, storageClass);
-        return;
-    } else {
-        log("parseStmt: not a type");
-    }
-
     switch(tokens.kind()) {
         case TKind.IDENTIFIER:
             if(tokens.kind(1) == TKind.COLON) {
@@ -78,7 +41,7 @@ void parseStmt(Node parent, Tokens tokens) {
             }
 
             switch(tokens.text()) {
-                case "__pragma": parse__pragma(parent, tokens); return;
+                case "__pragma": parsePragma(parent, tokens); return;
                 case "typedef": parseTypedef(parent, tokens); return;
                 case "return": parseReturn(parent, tokens); return;
                 case "if": parseIf(parent, tokens); return;
@@ -96,6 +59,45 @@ void parseStmt(Node parent, Tokens tokens) {
         default: break;
     }
 
+    // Could be a Var, Function or Expr
+
+    ParseTypeResult tan = isType(parent, tokens);
+    if(tan.hasType()) {
+        log("parseStmt: found type %s", tan);
+        // We found a type. Move forward ...
+        tokens.pos = tan.pos;
+
+        // Type id (
+        // Type id id (
+        bool isFunc = tokens.matches(TKind.IDENTIFIER, TKind.LPAREN) || 
+                      tokens.matches(TKind.IDENTIFIER, TKind.IDENTIFIER, TKind.LPAREN);
+        if(isFunc) {
+            parseFunc(parent, tokens, tan, storageClass);
+            return;
+        }
+
+        // This might be a Struct, Enum or Union definition
+        TypeRef tr = tan.type.as!TypeRef;
+        if(tr && !tokens.matches(TKind.IDENTIFIER)) {
+            if(tr.hasChildren()) {
+                Stmt def = tan.type.first().as!Stmt;
+                parent.add(def);
+                return;
+            } else {
+                // struct <name>;
+                // enum <name>;
+                // union <name>;
+                parent.add(tr);
+                return;
+            }
+        }
+
+        parseVar(parent, tokens, tan, storageClass);
+        return;
+    } else {
+        log("parseStmt: not a type");
+    }
+
     // if we get here then it must be an Expr
     parseExpr(parent, tokens);
 }
@@ -108,11 +110,13 @@ void parseParamVar(Node parent, Tokens tokens) {
     Var var = tokens.make!Var();
     parent.add(var);
 
-    var.type = parseType(var, tokens);
+    auto tan = parseType(var, tokens);
+
+    var.type = tan.type;
     var.isParam = true;
 
-    if(var.type.isA!FunctionPtr) {
-        var.name = extractVariableName(var.type);
+    if(tan.hasName()) {
+        var.name = tan.name;
     } else if(tokens.matches(TKind.IDENTIFIER)) {
         var.name = tokens.text(); tokens.next();
     }
@@ -250,12 +254,12 @@ void parseFor(Node parent, Tokens tokens) {
 /**
  * { storage-class } Type [ cc ] name '(' params ')' [ '{' body '}'  | ';' ]
  */
-void parseFunc(Node parent, Tokens tokens, Type returnType, StorageClass storageClass) {
+void parseFunc(Node parent, Tokens tokens, ParseTypeResult typeAndName, StorageClass storageClass) {
     log("parseFunc %s", tokens.token());
 
     auto cc = parseCallingConvention(tokens);
 
-    Function func = parseFunctionDeclaration(tokens, returnType, cc);
+    Function func = parseFunctionDeclaration(tokens, typeAndName.type, cc);
     parent.add(func);
 
     func.storageClass = storageClass;
@@ -278,12 +282,10 @@ void parseFunc(Node parent, Tokens tokens, Type returnType, StorageClass storage
 }
 
 void parseHash(Node parent, Tokens tokens) {
-    tokens.skip(TKind.HASH);
-
-    if(tokens.matches("pragma")) {
-        parseHashPragma(parent, tokens);
+    if(tokens.matches(TKind.HASH, "pragma")) {
+        parsePragma(parent, tokens);
     } else {
-        todo("unsupported hash directive %s".format(tokens.text()));
+        todo("unsupported hash directive %s".format(tokens.text(1)));
     }
 }
 /**
@@ -341,185 +343,6 @@ void parseLabel(Node parent, Tokens tokens) {
 }
 
 /**
- * #pragma <tokens>
- */
-void parseHashPragma(Node parent, Tokens tokens) {
-    tokens.skip("pragma");
-
-    // Ignore these:
-    //  #pragma once
-    //  #pragma region
-    //  #pragma endregion
-    if(tokens.text().isOneOf("once", "region", "endregion")) {
-        tokens.skipToNextLine();
-        return;
-    }
-
-    if(tokens.matches("warning")) {
-        parsePragmaWarning(parent, tokens);
-    } else if(tokens.matches("pack")) {
-        parsePragmaPack(parent, tokens);
-    } else if(tokens.matches("intrinsic")) {
-        parsePragmaIntrinsic(parent, tokens);
-    } else {
-        todo("unsupported #pragma %s".format(tokens.text()));
-    }
-}
-/**
-    * __pragma( <tokens> )
-    * ms specific
-    */
-void parse__pragma(Node parent, Tokens tokens) {
-    tokens.skip("__pragma");
-    tokens.skip(TKind.LPAREN);
-
-    if(tokens.matches("warning")) {
-        parsePragmaWarning(parent, tokens);
-    } else if(tokens.matches("pack")) {
-        parsePragmaPack(parent, tokens);
-    } else {
-        todo("unsupported __pragma %s".format(tokens.text()));
-    }
-    tokens.skip(TKind.RPAREN);
-}
-/**
- * #pragma intrinsic '(' function-name { ',' function-name } ')'
- */
-void parsePragmaIntrinsic(Node parent, Tokens tokens) {
-    tokens.skip("intrinsic");
-
-    Pragma pragma_ = tokens.make!Pragma();
-    parent.add(pragma_);
-    pragma_.kind = Pragma.PragmaKind.INTRINSIC;
-
-    tokens.skip(TKind.LPAREN);
-    while(!tokens.matchesOneOf(TKind.RPAREN, TKind.NONE)) {
-
-        pragma_.data.intrinsic.funcnames ~= tokens.text();
-        tokens.next();
-
-        if(tokens.matches(TKind.COMMA)) {
-            tokens.next();
-        }
-    }
-    tokens.skip(TKind.RPAREN);
-}
-/**
-    * #pragma pack()               <-- default n = 8   
-    * #pragma pack(1)              <-- n = 1  
-    * #pragma pack(show)           <-- ignore this one
-    * #pragma pack(push, 8)        <-- push n = 8
-    * #pragma pack(pop)            <-- pop
-    */
-void parsePragmaPack(Node parent, Tokens tokens) {
-    tokens.skip("pack");
-
-    Pragma pragma_ = tokens.make!Pragma();
-    parent.add(pragma_);
-    pragma_.kind = Pragma.PragmaKind.PACK;
-
-    tokens.skip(TKind.LPAREN);
-    if(tokens.matches(TKind.RPAREN)) {
-        // #pragma pack()
-        pragma_.data.pack.n = 8;
-    } else if(tokens.matches("show")) {
-        // #pragma pack(show)
-        tokens.skip("show");
-    } else if(tokens.matches("push")) {
-        // #pragma pack(push, 8)
-        tokens.skip("push");    
-        pragma_.data.pack.isPush = true;
-
-        if(tokens.matches(TKind.COMMA)) {
-            pragma_.data.pack.n = tokens.next().textToInt(); 
-            tokens.next();
-        } 
-    } else if(tokens.matches("pop")) {
-        // #pragma pack(pop, 8)
-        tokens.skip("pop");
-        pragma_.data.pack.isPop = true;
-
-        if(tokens.matches(TKind.COMMA)) {
-            tokens.next();
-            pragma_.data.pack.n = tokens.next().textToInt(); 
-            tokens.next();
-        }
-    } else if(tokens.kind() == TKind.NUMBER) {
-        // #pragma pack(8)
-        pragma_.data.pack.n = tokens.textToInt();
-        tokens.next();
-    } else {
-        syntaxError(tokens.cfile, tokens.token(), "Expected push, pop, show or number, got %s".format(tokens.text()));
-    }
-    tokens.skip(TKind.RPAREN);
-}
-/**
-    * #pragma warning( disable : 4507 4034; once : 4385; error : 164 )
-    * #pragma warning( disable : 4507, justification : "This warning is disabled" )
-    * #pragma warning( push [, level] ) 
-    * #pragma warning( pop )
-    *
-    * https://learn.microsoft.com/en-us/cpp/preprocessor/warning?view=msvc-170
-    */
-void parsePragmaWarning(Node parent, Tokens tokens) {
-    Pragma pragma_ = tokens.make!Pragma();
-    parent.add(pragma_);
-
-    tokens.skip("warning");
-    tokens.skip(TKind.LPAREN);
-
-    pragma_.kind = Pragma.PragmaKind.WARNING;
-
-    Pragma.Warning warning;
-    warning.specifier = tokens.text(); tokens.next();
-
-    if(warning.specifier == "push") {
-        warning.push = true;
-        if(tokens.matches(TKind.COMMA)) {
-            warning.level = tokens.next().textToInt(); 
-            tokens.next();
-        } 
-        tokens.skip(TKind.RPAREN);
-        pragma_.data.warnings ~= warning;
-        return;
-    } else if(warning.specifier == "pop") {
-        tokens.skip(TKind.RPAREN);
-        warning.pop = true;
-        pragma_.data.warnings ~= warning;
-        return;
-    }
-
-    tokens.skip(TKind.COLON);
-
-    while(tokens.kind() != TKind.RPAREN) {
-        if(tokens.kind() == TKind.NUMBER) {
-            warning.numbers ~= tokens.text();
-            tokens.next();
-        } else if(tokens.kind() == TKind.COMMA) {
-            tokens.next();
-            if(tokens.text() == "justification") {
-                tokens.next();
-                tokens.skip(TKind.COLON);
-                warning.justification = tokens.text(); tokens.next();
-            }
-        } else if(tokens.kind() == TKind.SEMI_COLON) {
-            tokens.next();
-            pragma_.data.warnings ~= warning;
-
-            // Start another warning specifier
-            warning = Pragma.Warning();
-            warning.specifier = tokens.text(); tokens.next();
-            tokens.skip(TKind.COLON);
-
-        } else {
-            todo("unsupported token %s".format(tokens.text()));
-        }
-    }
-    tokens.skip(TKind.RPAREN);
-    pragma_.data.warnings ~= warning;
-}
-
-/**
  * 'return' [ Expr ] ';'
  */
 void parseReturn(Node parent, Tokens tokens) {
@@ -558,11 +381,13 @@ void parseTypedef(Node parent, Tokens tokens) {
     Typedef first = td;
     parent.add(td);
 
-    td.type = parseType(td, tokens);
+    auto tan = parseType(td, tokens);
+
+    td.type = tan.type;
 
     // If this is a function pointer then we take the name from the function pointer
-    if(td.type.isA!FunctionPtr || td.nameIsEmbedded) {
-        td.name = extractVariableName(td.type);
+    if(tan.hasName()) {
+        td.name = tan.name;
     } else if(tokens.matches(TKind.IDENTIFIER)) {
         td.name = tokens.text(); tokens.next();
     }
@@ -607,26 +432,20 @@ void parseTypedef(Node parent, Tokens tokens) {
 /**
  * Type name [ '=' Expr ] ';'
  */
-void parseVar(Node parent, Tokens tokens, Type type, StorageClass storageClass) {
+void parseVar(Node parent, Tokens tokens, ParseTypeResult typeAndName, StorageClass storageClass) {
     log("parseVar %s", tokens.text());
     Var var = tokens.make!Var();
     Var firstVar = var;
     parent.add(var);
 
-    var.type = type;
+    var.type = typeAndName.type;
     var.storageClass = storageClass;
 
-    if(var.type.isA!FunctionPtr) {
-        var.name = extractVariableName(var.type);
+    if(typeAndName.hasName()) {
+        var.name = typeAndName.name;
     } else if(tokens.matches(TKind.IDENTIFIER)) {
         var.name = tokens.text(); tokens.next();
     }
-
-    // if(string n = extractVariableName(var.type)) {
-    //     var.name = n;
-    // } else {
-    //     var.name = tokens.text(); tokens.next();
-    // }
 
     // bitfield
     if(tokens.matches(TKind.COLON)) {
@@ -649,7 +468,7 @@ void parseVar(Node parent, Tokens tokens, Type type, StorageClass storageClass) 
         firstVar.firstInList = true;
 
         // Clone the type and remove the pointers
-        type = type.clone();
+        auto type = var.type.clone();
 
         // If any modifiers are specified then they replace the original modifiers
         TypeModifiers modifiers = parseModifiers(tokens);

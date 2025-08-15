@@ -9,6 +9,7 @@ import ec.all;
 final class Pragma : Stmt {
     PragmaKind kind;
     Data data;
+    bool isHash;    // #pragma vs __pragma
 
     this(EStmt estmt, Location location) {
         super(estmt, location);
@@ -32,10 +33,22 @@ final class Pragma : Stmt {
         bool pop;               // #pragma warning( pop )
         uint level;             // set if push is true and a level is specified    
 
+        /*
+        warning(
+           specifier : numbers [ , justification : string-literal]
+           [; specifier : numbers ... ] 
+        )
+
+        warning( push [ , n ] )
+
+        warning( pop )
+        */
         string toString() {
-            if(push) return "warning(push%s)".format(level != 0 ? ", %s".format(level) : "");
-            if(pop) return "warning(pop)";
-            return "warning(%s : %s%s)".format(specifier, numbers, justification ? ", " ~ justification : "");
+            if(push) return "push%s".format(level != 0 ? ", %s".format(level) : "");
+            if(pop) return "pop";
+            string n = numbers.join(", ");
+            string j = justification ? ", justification: %s".format(justification) : "";
+            return "%s : %s%s".format(specifier, n, j);
         }
     }
     static struct Pack {
@@ -43,28 +56,44 @@ final class Pragma : Stmt {
         bool isPop;     // #pragma pack(pop)
         uint n;         // n, this can still be set if !isPush && !isPop --> #pragma pack(n)
         
+        /**
+         * pack( show )
+         * pack( push [ , identifier ] [ , n ] )
+         * pack( pop [ , { identifier | n } ] )
+         * pack( [ n ] )
+         */
         string toString() {
             return "pack(%s%s)".format(isPush ? "push " : isPop ? "pop " : "", n);
         }
     }
     static struct Intrinsic {
         string[] funcnames;
+
+        /** 
+         * intrinsic( function_1 [, function_2 ... ] )
+         */
+        string toString() {
+            return "intrinsic(%s)".format(funcnames.join(", "));
+        }
     }
 
     override string toString() {
+        string str = isHash ? "#pragma " : "__pragma(";
+
         if(kind == PragmaKind.INTRINSIC) {
-            return "Pragma(INTRINSIC, %s)".format(data.intrinsic.funcnames);
-        }
-        if(kind == PragmaKind.WARNING) {
-            string s = "Pragma(WARNING, ";
+            str ~= "%s".format(data.intrinsic.toString());
+        } else if(kind == PragmaKind.WARNING) {
+            string s = "warning( ";
             foreach(i, w; data.warnings) {
                 if(i != 0) s ~= "; ";
                 s ~= w.toString();
             }
-            return s ~ ")";
+            s ~= " )";
+            str ~= s;
         } else if(kind == PragmaKind.PACK) {
-            return "Pragma(PACK, %s)".format(data.pack.toString());
+            str ~= data.pack.toString();
         }
-        return "Pragma(%s, %s)".format(kind, data);
+        if(!isHash) str ~= ")";
+        return str;
     }
 }

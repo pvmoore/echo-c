@@ -28,6 +28,6 @@ public:
     }
 
     override string toString() {
-        return "Array of %s, varName = %s".format(elementType.toString(), varName);
+        return "Array of %s".format(elementType.toString());
     }
 }

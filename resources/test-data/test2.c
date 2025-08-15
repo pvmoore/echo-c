@@ -46,3 +46,8 @@ __declspec(align(16)) enum {
     Low,
     High
 } c7;
+
+typedef __declspec(align(16)) __declspec(no_init_all) __pragma(warning(push)) __pragma(warning(disable:4845)) __pragma(warning(pop)) struct _CONTEXT {
+    int P1Home;
+} CONTEXT;
+
