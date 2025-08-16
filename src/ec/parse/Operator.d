@@ -219,8 +219,7 @@ int precedenceOf(Operator op) {
         case BOOL_OR:
             return 12;
 
-        // case TERNARY:
-        //     return 13;
+        //  ternary -> 13
 
         case ASSIGN: 
         case ADD_ASSIGN: 
@@ -234,5 +233,7 @@ int precedenceOf(Operator op) {
         case SHL_ASSIGN: 
         case SHR_ASSIGN:
             return 14;
+
+        // comma -> 15
     }
 }

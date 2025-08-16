@@ -18,6 +18,12 @@ public:
 
     final bool isLast() { return parent && parent.hasChildren() && parent.last() is this; }
 
+    /** Return the root node of the tree (usually CFile but could be other things) */
+    final Node root() {
+        if(!parent) return this;
+        return parent.root();
+    }
+
     final void add(Node n) {
         if(n.parent) {
             n.detach();
@@ -40,6 +46,13 @@ public:
         if(CFile cf = this.as!CFile) return cf;
         return parent.getCFile();
     }
+
+    bool hasAncestor(T)() {
+        if(this.isA!T) return true;
+        if(parent is null) return false;
+        return parent.hasAncestor!T();
+    }
+
     final void dump(string indent = "") {
         log("%s%s", indent, this);
         foreach(ch; children) {

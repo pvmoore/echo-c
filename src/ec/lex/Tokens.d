@@ -43,11 +43,11 @@ public:
         return pos >= tokens.length;
     }
     void skip(TKind k) {
-        if(kind() != k) syntaxError(cfile, token(), "Expected '%s' got '%s'".format(stringOf(k), token()));
+        if(kind() != k) syntaxError(cfile, token(), "Expected '%s' got %s".format(stringOf(k), token()));
         pos++;
     }
     void skip(string s) {
-        if(text() != s) syntaxError(cfile, token(), "Expected '%s' got '%s'".format(s, token()));
+        if(text() != s) syntaxError(cfile, token(), "Expected '%s' got %s".format(s, token()));
         pos++;
     }
     void skipToNextLine() {
@@ -154,6 +154,7 @@ public:
         else static if(is(T == Union)) t = new T(EStmt.UNION, loc);
         else static if(is(T == Switch)) t = new T(EStmt.SWITCH, loc);
         else static if(is(T == Index)) t = new T(EStmt.INDEX, loc);
+        else static if(is(T == Comma)) t = new T(EStmt.COMMA, loc);
 
         else {
             static assert(false, "Unsupported statement type %s".format(T.stringof));

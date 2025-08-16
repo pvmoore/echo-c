@@ -60,6 +60,10 @@ void parseHashPragma(Node parent, Tokens tokens) {
         parsePragmaPack(parent, tokens, true);
     } else if(tokens.matches("intrinsic")) {
         parsePragmaIntrinsic(parent, tokens, true);
+    } else if(tokens.matches("deprecated")) {
+        parsePragmaDeprecated(parent, tokens, true);
+    } else if(tokens.matches("comment")) {
+        parsePragmaComment(parent, tokens, true);
     } else {
         todo("unsupported #pragma %s".format(tokens.text()));
     }
@@ -76,8 +80,55 @@ void parse__pragma(Node parent, Tokens tokens) {
         parsePragmaWarning(parent, tokens, false);
     } else if(tokens.matches("pack")) {
         parsePragmaPack(parent, tokens, false);
+    } else if(tokens.matches("deprecated")) {
+        parsePragmaDeprecated(parent, tokens, false);
+    } else if(tokens.matches("comment")) {
+        parsePragmaComment(parent, tokens, false);
     } else {
         todo("unsupported __pragma %s".format(tokens.text()));
+    }
+    tokens.skip(TKind.RPAREN);
+}
+
+/**
+ * #pragma comment( comment-type [ , "comment-string" ] )
+ */
+void parsePragmaComment(Node parent, Tokens tokens, bool isHash) {
+    tokens.skip("comment");
+
+    Pragma pragma_ = tokens.make!Pragma();
+    parent.add(pragma_);
+    pragma_.kind = Pragma.PragmaKind.COMMENT;
+    pragma_.isHash = isHash;
+
+    tokens.skip(TKind.LPAREN);
+    while(!tokens.matchesOneOf(TKind.RPAREN, TKind.NONE)) {
+        pragma_.data.comment.comments ~= tokens.text();
+        tokens.next();
+    }
+    tokens.skip(TKind.RPAREN);
+}
+
+/**
+ *  #pragma deprecated( identifier1 [ , identifier2 ... ] )
+ */
+void parsePragmaDeprecated(Node parent, Tokens tokens, bool isHash) {
+    tokens.skip("deprecated");
+
+    Pragma pragma_ = tokens.make!Pragma();
+    parent.add(pragma_);
+    pragma_.kind = Pragma.PragmaKind.DEPRECATED;
+    pragma_.isHash = isHash;
+
+    tokens.skip(TKind.LPAREN);
+    while(!tokens.matchesOneOf(TKind.RPAREN, TKind.NONE)) {
+
+        pragma_.data.deprecated_.funcNames ~= tokens.text();
+        tokens.next();
+
+        if(tokens.matches(TKind.COMMA)) {
+            tokens.next();
+        }
     }
     tokens.skip(TKind.RPAREN);
 }

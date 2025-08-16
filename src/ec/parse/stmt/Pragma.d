@@ -16,6 +16,8 @@ final class Pragma : Stmt {
     }
 
     enum PragmaKind {
+        COMMENT,
+        DEPRECATED,
         PACK,
         WARNING,
         INTRINSIC
@@ -24,6 +26,28 @@ final class Pragma : Stmt {
         Warning[] warnings;
         Pack pack;
         Intrinsic intrinsic;
+        Deprecated deprecated_;
+        Comment comment;
+    }
+    static struct Comment {
+        string[] comments;
+
+        /** 
+         * comment( comment_1 [, comment_2 ... ] )
+         */
+        string toString() {
+            return "comment(%s)".format(comments.join(", "));
+        }
+    }
+    static struct Deprecated {
+        string[] funcNames;
+
+        /** 
+         * deprecated( function_1 [, function_2 ... ] )
+         */
+        string toString() {
+            return "deprecated(%s)".format(funcNames.join(", "));
+        }
     }
     static struct Warning {
         string specifier;       // disable, once, error, etc.
@@ -92,7 +116,12 @@ final class Pragma : Stmt {
             str ~= s;
         } else if(kind == PragmaKind.PACK) {
             str ~= data.pack.toString();
+        } else if(kind == PragmaKind.DEPRECATED) {
+            str ~= data.deprecated_.toString();
+        } else if(kind == PragmaKind.COMMENT) {
+            str ~= data.comment.toString();
         }
+
         if(!isHash) str ~= ")";
         return str;
     }

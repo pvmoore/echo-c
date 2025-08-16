@@ -7,7 +7,6 @@ void parseCFile(CFile cfile) {
     log("Parsing %s", cfile.filename);
     Tokens tokens = new Tokens(cfile);
 
-    int count;
     int pos = 0;
 
     while(!tokens.isEof()) {
@@ -16,10 +15,7 @@ void parseCFile(CFile cfile) {
         
         throwIf(tokens.pos == pos, "we made no progress %s", tokens.token());
         pos = tokens.pos; 
-        if(count++ > 6300) break;
-
     }
-    log("done");
 }
 void parseStmt(Node parent, Tokens tokens) {
 
@@ -31,7 +27,7 @@ void parseStmt(Node parent, Tokens tokens) {
     log("parseStmt %s", tokens.token());
 
     // extern | static | __declspec
-    StorageClass storageClass = parseStorageClass(tokens);
+    StorageClass storageClass = parseStorageClass(tokens, StorageClass());
 
     switch(tokens.kind()) {
         case TKind.IDENTIFIER:
@@ -63,15 +59,20 @@ void parseStmt(Node parent, Tokens tokens) {
 
     ParseTypeResult tan = isType(parent, tokens);
     if(tan.hasType()) {
-        log("parseStmt: found type %s", tan);
         // We found a type. Move forward ...
         tokens.pos = tan.pos;
+
+        log("parseStmt: found type %s token=%s", tan, tokens.token());
+
+        // Collect more storage class tokens after the Type
+        storageClass = parseStorageClass(tokens, storageClass);
 
         // Type id (
         // Type id id (
         bool isFunc = tokens.matches(TKind.IDENTIFIER, TKind.LPAREN) || 
                       tokens.matches(TKind.IDENTIFIER, TKind.IDENTIFIER, TKind.LPAREN);
         if(isFunc) {
+            log("parseStmt: this is a function");
             parseFunc(parent, tokens, tan, storageClass);
             return;
         }
@@ -79,19 +80,23 @@ void parseStmt(Node parent, Tokens tokens) {
         // This might be a Struct, Enum or Union definition
         TypeRef tr = tan.type.as!TypeRef;
         if(tr && !tokens.matches(TKind.IDENTIFIER)) {
+            log("parseStmt: this is a struct/enum/union definition, parent = %s, hasChildren = %s", 
+                className(parent), tr.hasChildren());
+
             if(tr.hasChildren()) {
                 Stmt def = tan.type.first().as!Stmt;
                 parent.add(def);
                 return;
-            } else {
+            } else if(parent.isA!CFile || parent.isA!Function) {
                 // struct <name>;
                 // enum <name>;
                 // union <name>;
                 parent.add(tr);
                 return;
             }
+            // Drop into Var
         }
-
+        log("parseStmt: this is a var");
         parseVar(parent, tokens, tan, storageClass);
         return;
     } else {
@@ -214,13 +219,12 @@ void parseFor(Node parent, Tokens tokens) {
     tokens.skip("for");
     tokens.skip(TKind.LPAREN);
 
-    // pre
-    log("for: parseStmt");
-    parseStmt(for_, tokens);
-    // ^^ should evaluate to one or more Vars which may be comma separated. The parseVar should handle all of them
+    // pre (optional)
+    if(!tokens.matches(TKind.SEMI_COLON)) {
+        parseStmt(for_, tokens);
+        // ^^ should evaluate to one or more Vars which may be comma separated. The parseVar should handle all of them
+    }
 
-    log("after pre");
-    for_.dump();
     tokens.skip(TKind.SEMI_COLON);
     for_.conditionIndex = for_.numChildren();
 

@@ -70,7 +70,7 @@ void parseLHS(Node parent, Tokens tokens) {
             parseInitialiser(parent, tokens);
             return;
         default: 
-            todo("unsupported token %s".format(tokens.text()));
+            todo("Unexpected LHS token %s".format(tokens.token()));
             break;
     }
 
@@ -87,7 +87,6 @@ void parseRHS(Node parent, Tokens tokens) {
             case TKind.RPAREN:
             case TKind.RSQUARE:
             case TKind.SEMI_COLON:
-            case TKind.COMMA:
             case TKind.NUMBER:
             case TKind.STRING:
             case TKind.HASH:
@@ -153,6 +152,34 @@ void parseRHS(Node parent, Tokens tokens) {
                 parent = attachAndRead(parent, i, tokens, false);
                 break;
             }
+            case TKind.COMMA: {
+                // Check here because this might not be a comma operator
+
+                // Assume for now that this is only a comma operator is it has one of
+                // a limited subset of parent types:
+                bool isCommaOperator = false;
+                Node n = parent;
+
+                // Reach above Infix exprs
+                while(n.isA!Infix) n = n.parent;
+
+                //n.dump();
+
+                isCommaOperator |= n.isA!Comma;
+                isCommaOperator |= n.isA!Parens;
+                isCommaOperator |= n.isA!Function;
+                isCommaOperator |= n.isA!Return;
+
+                if(!isCommaOperator) {
+                    log("parseExpr: not a COMMA, parent = %s", className(parent));
+                    return;
+                }
+                log("parseExpr: COMMA parent = %s", className(parent));
+                
+                auto c = parseAndReturnComma(tokens);
+                parent = attachAndRead(parent, c, tokens, true);
+                break;
+            }
             default:
                 throwIf(true, "Unexpected RHS token %s".format(tokens.text()));
         }
@@ -167,7 +194,7 @@ Expr attachAndRead(Node parent, Expr newExpr, Tokens tokens, bool andRead) {
     if(Expr prevExpr = prev.as!Expr) {
 
         // Adjust to account for operator precedence
-        while(prevExpr.parent && newExpr.precedence() >= prevExpr.precedence()) {
+        while(prevExpr.parent && newExpr.precedence() > prevExpr.precedence()) {
 
             if(!prevExpr.parent.isA!Expr) {
                 prev = prevExpr.parent;
@@ -188,6 +215,15 @@ Expr attachAndRead(Node parent, Expr newExpr, Tokens tokens, bool andRead) {
     }
 
     return newExpr;
+}
+
+/**
+ * Expr ',' Expr
+ */
+Comma parseAndReturnComma(Tokens tokens) {
+    Comma comma = tokens.make!Comma();
+    tokens.skip(TKind.COMMA);
+    return comma;
 }
 
 Infix parseAndReturnInfix(Tokens tokens) {
@@ -312,20 +348,28 @@ void parseCast(Node parent, Tokens tokens, Type type) {
  * SINGLE_INIT ::= '{' Expr '}'
  */
 void parseInitialiser(Node parent, Tokens tokens) {
+    log("parseInitialiser %s", tokens.token());
     Initialiser init = tokens.make!Initialiser();
     parent.add(init);
 
     tokens.skip(TKind.LBRACE);
 
-    
-
     while(!tokens.isEof() && !tokens.matches(TKind.RBRACE)) {
 
-        if(tokens.matches(TKind.DOT, TKind.IDENTIFIER, TKind.EQUALS)) {
+        if(tokens.matches(TKind.DOT, TKind.IDENTIFIER)) {
             // We must be in a struct initialiser
+
+            // Consume IDENTIFER { '.' IDENTIFIER }
+            string label;
             
-            tokens.skip(TKind.DOT);
-            string label = tokens.text(); tokens.next();
+            while(tokens.matches(TKind.DOT, TKind.IDENTIFIER)) {
+                tokens.skip(TKind.DOT);
+                label ~= tokens.text(); 
+                tokens.next();
+
+                if(tokens.matches(TKind.DOT)) label ~= ".";
+            }
+
             tokens.skip(TKind.EQUALS);
 
             // label_expr

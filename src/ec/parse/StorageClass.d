@@ -43,8 +43,7 @@ struct StorageClass {
     }
 }
 
-StorageClass parseStorageClass(Tokens tokens) {
-    StorageClass storageClass;
+StorageClass parseStorageClass(Tokens tokens, StorageClass storageClass) {
     while(true) {
         if(tokens.matches("extern")) {
             storageClass.isExtern = true;

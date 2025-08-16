@@ -15,16 +15,16 @@ struct Token {
     uint originalFilenameIndex; // index into g_originalFilenames
 
     string toString() {
-        string s;
+        string s = "Token{";
         if(lengthOf(kind) == 0) {
             string t = text;
             if(t.length > 30) t = t[0..30] ~ "...";
             t = t.replace("%s", "%%");
-            s = format("%s:%s", t, kind);
+            s ~= format("%s:%s", t, kind);
         } else  {
-            s = "'" ~ stringOf(kind) ~ "'";
+            s ~= "'" ~ stringOf(kind) ~ "'";
         }
-        return "%s %s:%s (%s:%s)".format(s, line, column, originalLine, originalFilenameIndex);
+        return "%s %s:%s (%s:%s)}".format(s, line, column, originalLine, originalFilenameIndex);
     }
 }
 

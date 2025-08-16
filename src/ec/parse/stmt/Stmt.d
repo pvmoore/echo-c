@@ -34,6 +34,7 @@ enum EStmt {
     ADDRESSOF,
     CALL,
     CAST,
+    COMMA,
     DOT,
     IDENTIFIER,
     INDEX,

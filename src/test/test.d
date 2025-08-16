@@ -8,10 +8,10 @@ import std.path     : baseName, stripExtension;
 import test.test_comparer;
 import ec;
 
-void main() {
-    writeln("Hello World");
+enum ONLY_RUN_TEST_SUITE = false;
+enum SINGLE_TEST         = "";// = "test2";
 
-    enum ONLY_RUN_TEST_SUITE = false;
+void main() {
 
     static if(ONLY_RUN_TEST_SUITE) {
         runTests();
@@ -51,7 +51,6 @@ void runTests() {
 
     writefln("Running tests ...");
 
-    enum SINGLE_TEST = "";// = "test2";
     static if(SINGLE_TEST != "") {
         runTest(SINGLE_TEST);
         return;

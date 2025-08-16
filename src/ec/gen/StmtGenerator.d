@@ -106,6 +106,7 @@ private:
             case EStmt.BREAK: generate(stmt.as!Break); break;
             case EStmt.CALL: generateCall(stmt.as!Call); break;
             case EStmt.CAST: generate(stmt.as!Cast); break;
+            case EStmt.COMMA: generate(stmt.as!Comma); break;
             case EStmt.CONTINUE: generate(stmt.as!Continue); break;
             case EStmt.DOT: generate(stmt.as!Dot); break;
             case EStmt.DO_WHILE: generate(stmt.as!DoWhile); break;
@@ -172,6 +173,11 @@ private:
         generate(c.type);
         buf.add(") ");
         generate(c.expr());
+    }
+    void generate(Comma c) {
+        generate(c.left());
+        buf.add(", ");
+        generate(c.right());
     }
     void generate(Continue c) {
         buf.add("continue");
@@ -360,6 +366,12 @@ private:
                 buf.add("intrinsic(%s)", i.funcnames.join(", "));
                 break;
             }
+            case Pragma.PragmaKind.DEPRECATED:
+                buf.add("deprecated(%s)", pragma_.data.deprecated_.funcNames.join(", "));
+                break;
+            case Pragma.PragmaKind.COMMENT:
+                buf.add("comment(%s)", pragma_.data.comment.comments.join(", "));
+                break;
             default: todo("generate(Pragma): implement %s".format(pragma_.kind));
         }
     }

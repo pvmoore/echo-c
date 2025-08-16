@@ -39,8 +39,6 @@ final class TypeRef : Type {
             // [ const ] union <name>;
             // storage-class Type <name>(Params);
             if(etype == EType.FUNCTION_DECL) {
-                //Function fn = nodeRef.as!Function;
-                //return "%s %s(%s)".format(fn.returnType, name, fn.params());
                 return name;
             }
             string t = "%s".format(etype).toLower();

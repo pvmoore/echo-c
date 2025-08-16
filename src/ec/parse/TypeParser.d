@@ -264,7 +264,7 @@ Type parseStruct(Tokens tokens) {
 
         type.add(struct_);
 
-        while(!tokens.matches(TKind.RBRACE)) {
+        while(!tokens.matchesOneOf(TKind.RBRACE, TKind.NONE)) {
             parseStmt(struct_, tokens);
         }
         tokens.skip(TKind.RBRACE);
@@ -304,7 +304,7 @@ Type parseUnion(Tokens tokens) {
 
         type.add(union_);
 
-        while(!tokens.matches(TKind.RBRACE)) {
+        while(!tokens.matchesOneOf(TKind.RBRACE, TKind.NONE)) {
             parseStmt(union_, tokens);
         }
         tokens.skip(TKind.RBRACE);
@@ -340,7 +340,7 @@ Type parseEnum(Tokens tokens) {
 
         type.add(enum_);
 
-        while(!tokens.matches(TKind.RBRACE)) {
+        while(!tokens.matchesOneOf(TKind.RBRACE, TKind.NONE)) {
             if(tokens.matches(TKind.IDENTIFIER, TKind.EQUALS)) {
                 Enum.Member m = {
                     label: tokens.text(),

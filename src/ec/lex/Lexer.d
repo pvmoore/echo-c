@@ -15,6 +15,20 @@ public:
             if(ch < 33) {
                 consumeWhitespace();
             } else switch(ch) {
+                case '\\':
+                    if(peek(1) < 33) {
+                        // Consume this line continuation as whitespace
+                        consumeWhitespace();
+                    }
+                    break;
+                case 'L':
+                    if(peek(1) == '"') {
+                        // L"string"
+                        consumeString();
+                    } else {
+                        pos++;
+                    }
+                    break;
                 case '"':
                     consumeString();
                     break;
@@ -286,6 +300,9 @@ private:
                 eol();
             } else if(peek() < 33) {
                 pos++;
+            } else if(peek() == '\\' && peek(1) < 33) {
+                // Line continuation. Just consume it as whitespace
+                pos++;
             } else {
                 break;
             }
@@ -294,8 +311,13 @@ private:
     }
     void consumeString() {
         addToken();
-        assert(peek()=='"');
-        pos++;
+
+        if(peek() == '"') {
+            pos++;
+        } else if(peek('L' && peek(1)=='"')) {
+            pos+=2;
+        } else assert(false);
+        
         while(pos < source.length) {
             if(peek()=='"') {
                 break;
@@ -352,8 +374,8 @@ private:
         }
         tokenStart = pos;
     }
-    bool isEol() {
-        return peek().isOneOf(10, 13);
+    bool isEol(int offset = 0) {
+        return peek(offset).isOneOf(10, 13);
     }
     void eol() {
         // can be 13,10 or just 10
