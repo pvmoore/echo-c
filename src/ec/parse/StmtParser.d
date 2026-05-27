@@ -3,14 +3,13 @@ module ec.parse.StmtParser;
 import ec.all;
 
 void parseCFile(CFile cfile) {
-
-    log("Parsing %s", cfile.filename);
+    log(Log.StmtParser, "Parsing %s", cfile.filename);
     Tokens tokens = new Tokens(cfile);
 
     int pos = 0;
 
     while(!tokens.isEof()) {
-        //log("parseStmt %s %s", count, tokens.token());
+        //log(Log.StmtParser, "parseStmt %s %s", count, tokens.token());
         parseStmt(cfile, tokens);
         
         throwIf(tokens.pos == pos, "we made no progress %s", tokens.token());
@@ -24,7 +23,7 @@ void parseStmt(Node parent, Tokens tokens) {
         tokens.next();
         return;
     }
-    log("parseStmt %s", tokens.token());
+    log(Log.StmtParser, "parseStmt %s", tokens.token());
 
     // extern | static | __declspec
     StorageClass storageClass = parseStorageClass(tokens, StorageClass());
@@ -62,7 +61,7 @@ void parseStmt(Node parent, Tokens tokens) {
         // We found a type. Move forward ...
         tokens.pos = tan.pos;
 
-        log("parseStmt: found type %s token=%s", tan, tokens.token());
+        log(Log.StmtParser, "parseStmt: found type %s token=%s", tan, tokens.token());
 
         // Collect more storage class tokens after the Type
         storageClass = parseStorageClass(tokens, storageClass);
@@ -72,7 +71,7 @@ void parseStmt(Node parent, Tokens tokens) {
         bool isFunc = tokens.matches(TKind.IDENTIFIER, TKind.LPAREN) || 
                       tokens.matches(TKind.IDENTIFIER, TKind.IDENTIFIER, TKind.LPAREN);
         if(isFunc) {
-            log("parseStmt: this is a function");
+            log(Log.StmtParser, "parseStmt: this is a function");
             parseFunc(parent, tokens, tan, storageClass);
             return;
         }
@@ -80,7 +79,7 @@ void parseStmt(Node parent, Tokens tokens) {
         // This might be a Struct, Enum or Union definition
         TypeRef tr = tan.type.as!TypeRef;
         if(tr && !tokens.matches(TKind.IDENTIFIER)) {
-            log("parseStmt: this is a struct/enum/union definition, parent = %s, hasChildren = %s", 
+            log(Log.StmtParser, "parseStmt: this is a struct/enum/union definition, parent = %s, hasChildren = %s", 
                 className(parent), tr.hasChildren());
 
             if(tr.hasChildren()) {
@@ -96,11 +95,11 @@ void parseStmt(Node parent, Tokens tokens) {
             }
             // Drop into Var
         }
-        log("parseStmt: this is a var");
+        log(Log.StmtParser, "parseStmt: this is a var");
         parseVar(parent, tokens, tan, storageClass);
         return;
     } else {
-        log("parseStmt: not a type");
+        log(Log.StmtParser, "parseStmt: not a type");
     }
 
     // if we get here then it must be an Expr
@@ -111,7 +110,7 @@ void parseStmt(Node parent, Tokens tokens) {
  * Type [ name ] [ , ) ]
  */
 void parseParamVar(Node parent, Tokens tokens) {
-    log("parseParamVar %s", tokens.token());
+    log(Log.StmtParser, "parseParamVar %s", tokens.token());
     Var var = tokens.make!Var();
     parent.add(var);
 
@@ -131,7 +130,7 @@ void parseParamVar(Node parent, Tokens tokens) {
  * ReturnType [ cc ] name '(' { Type [ name ] } ')'
  */
 Function parseFunctionDeclaration(Tokens tokens, Type returnType, CallingConvention cc) {
-    log("parseFunctionDeclaration %s", tokens.token());
+    log(Log.StmtParser, "parseFunctionDeclaration %s", tokens.token());
 
     Function fn = tokens.make!Function();
 
@@ -259,7 +258,7 @@ void parseFor(Node parent, Tokens tokens) {
  * { storage-class } Type [ cc ] name '(' params ')' [ '{' body '}'  | ';' ]
  */
 void parseFunc(Node parent, Tokens tokens, ParseTypeResult typeAndName, StorageClass storageClass) {
-    log("parseFunc %s", tokens.token());
+    log(Log.StmtParser, "parseFunc %s", tokens.token());
 
     auto cc = parseCallingConvention(tokens);
 
@@ -378,7 +377,7 @@ void parseScope(Node parent, Tokens tokens) {
  * 'typedef' type name { ',' { '*' } name } ';'
  */
 void parseTypedef(Node parent, Tokens tokens) {
-    log("parseTypedef %s", tokens.text());
+    log(Log.StmtParser, "parseTypedef %s", tokens.text());
     tokens.skip("typedef");
 
     Typedef td = tokens.make!Typedef();
@@ -428,7 +427,7 @@ void parseTypedef(Node parent, Tokens tokens) {
 
     td.lastInList = td.inList;
 
-    log("end of typedef %s", td.name);
+    log(Log.StmtParser, "end of typedef %s", td.name);
 
     tokens.skip(TKind.SEMI_COLON);
 }
@@ -437,7 +436,7 @@ void parseTypedef(Node parent, Tokens tokens) {
  * Type name [ '=' Expr ] ';'
  */
 void parseVar(Node parent, Tokens tokens, ParseTypeResult typeAndName, StorageClass storageClass) {
-    log("parseVar %s", tokens.text());
+    log(Log.StmtParser, "parseVar %s", tokens.text());
     Var var = tokens.make!Var();
     Var firstVar = var;
     parent.add(var);

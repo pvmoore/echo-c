@@ -27,14 +27,21 @@ void main() {
         ec.resolve();
         ec.generate();
     }
+
+    import ec.preprocess.Preprocessor;
+    writefln("Preprocessor timings:");
+    writefln("  clang: %.2f s", Preprocessor.totalTimeClang / 1_000_000_000.0);
+    writefln("  cl:    %.2f s", Preprocessor.totalTimeCl / 1_000_000_000.0);
 }
+ 
+private: 
 
 EC testMiniVrt() {
     Config conf = {
         sourceDirectory: "C:/pvmoore/d/experimental/mini_vrt/c/src/",
         targetDirectory: ".target/mini_vrt/",
         includeDirectories: [
-            "C:/work/VulkanSDK/1.4.321.1/Include",
+            "C:/work/VulkanSDK/1.4.350.0/Include",
             "C:/work/glfw-3.4.bin.WIN64/include"
         ]
     };
@@ -101,6 +108,6 @@ void runTest(string filename) {
         writefln("  Passed: %s", filename);
     } else {
         writefln("  Failed: %s", filename);
-        throw new Exception("Test failed");
+        throw new Exception("Test failed: %s".format(filename));
     }
 }

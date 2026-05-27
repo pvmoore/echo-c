@@ -8,7 +8,7 @@ public:
         this.config = config;
         this.config.check();
 
-        log("EC created with config: %s", this.config.toString());
+        log(Log.General, "EC created with config: %s", this.config.toString());
     }
     void addCFile(string filename) {
 
@@ -31,9 +31,9 @@ public:
         Token[] tokens = lexer.tokenise();
 
         if(tokens.length < 100) {
-            log(tokens.toString());
+            log(Log.General, tokens.toString());
         } else {
-            log(tokens[0..100].toString());
+            log(Log.General, tokens[0..100].toString());
         }
 
         CFile cfile = new CFile(config, filename, tokens);
@@ -52,7 +52,7 @@ public:
      * Resolve any ambiguous AST nodes.
      */
     void resolve() {
-        log("Resolving");
+        log(Log.General, "Resolving");
         Node[] unresolved;
         void recurse(Node n) {
             if(!n.isResolved()) {
@@ -68,14 +68,14 @@ public:
         if(unresolved.length > 0) {
             logError("Unresolved nodes found: %s", unresolved.length);
             foreach(i, u; unresolved) {
-                log("[%s] - %s", i, u);
+                log(Log.General, "[%s] - %s", i, u);
 
                 todo("resolve this node");
             }
         }
     }
     void generate() {
-        log("Generating");
+        log(Log.General, "Generating to [%s]", config.targetDirectory);
         foreach(cfile; cfiles.values) {
             StmtGenerator gen = new StmtGenerator();
             gen.generate(cfile);

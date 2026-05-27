@@ -2,14 +2,17 @@ module ec.all;
 
 public:
 
-import std.format    : format;
-import std.range     : array, join;
-import std.algorithm : map, filter;
-import std.file      : exists, isFile, isDir, mkdirRecurse;
-import std.path      : baseName, stripExtension;
-import std.string    : strip, indexOf, split, splitLines, toLower;
-import std.array     : replace;
-import std.typecons  : Tuple, tuple;
+import core.atomic            : atomicOp;
+
+import std.format             : format;
+import std.range              : array, join;
+import std.algorithm          : map, filter;
+import std.file               : exists, isFile, isDir, mkdirRecurse;
+import std.path               : baseName, stripExtension;
+import std.string             : strip, indexOf, split, splitLines, toLower;
+import std.array              : replace;
+import std.typecons           : Tuple, tuple;
+import std.datetime.stopwatch : StopWatch;
 
 import ec;
 
@@ -82,7 +85,8 @@ import ec.parse.SyntaxError;
 import ec.parse.TypeModifiers;
 import ec.parse.TypeParser;
 
-import common.utils : isOneOf, as, isA, throwIf, todo, removeAt, indexOf, containsKey, repeat, className;
+import common.utils : isOneOf, as, isA, throwIf, todo, removeAt, indexOf, containsKey, repeat, className,
+                      startsWith, contains;
 import common.io    : Ansi, ansiWrap;
 import common       : StringBuffer;
 

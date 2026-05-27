@@ -14,7 +14,7 @@ struct ParseTypeResult {
 }
 
 ParseTypeResult isType(Node parent, Tokens tokens, int offset = 0) {
-    log("isType: %s", tokens.token());
+    log(Log.TypeParser, "isType: %s", tokens.token());
 
     tokens.pushState();
     scope(exit) tokens.popState();
@@ -25,7 +25,7 @@ ParseTypeResult isType(Node parent, Tokens tokens, int offset = 0) {
 }
 
 ParseTypeResult parseType(Node parent, Tokens tokens, bool required = true) {
-    log("parseType: %s", tokens.token());
+    log(Log.TypeParser, "parseType: %s", tokens.token());
 
     Type type;
     string name;
@@ -92,7 +92,7 @@ ParseTypeResult parseType(Node parent, Tokens tokens, bool required = true) {
             }
             tan.pos = tokens.pos;
 
-            log("returning type = %s", tan);
+            log(Log.TypeParser, "returning type = %s", tan);
             return tan;
 
         } else {
@@ -104,7 +104,7 @@ ParseTypeResult parseType(Node parent, Tokens tokens, bool required = true) {
         }
     }
 
-    log("parseType: type = %s", ParseTypeResult(type, name, tokens.pos));
+    log(Log.TypeParser, "parseType: type = %s", ParseTypeResult(type, name, tokens.pos));
 
     // Type name(
     // Type decl name(
@@ -120,7 +120,7 @@ ParseTypeResult parseType(Node parent, Tokens tokens, bool required = true) {
         }
         tan.pos = tokens.pos;
 
-        log("returning function decl = %s", tan);
+        log(Log.TypeParser, "returning function decl = %s", tan);
         return tan;
     }
 
@@ -139,7 +139,7 @@ ParseTypeResult parseType(Node parent, Tokens tokens, bool required = true) {
         tokens.skip(TKind.RPAREN);
     }
 
-    log("returning type %s", ParseTypeResult(type, name, tokens.pos));
+    log(Log.TypeParser, "returning type %s", ParseTypeResult(type, name, tokens.pos));
 
     return ParseTypeResult(type, name, tokens.pos);
 }
@@ -377,7 +377,7 @@ Type parseEnum(Tokens tokens) {
  * extern void (*signal(int, void(*)(int)))(int)
  */
 ParseTypeResult parseFunctionPtr(Node parent, Tokens tokens, Type returnType) {
-    log("parseFunctionPtr: return type = %s %s", returnType, tokens.token());
+    log(Log.TypeParser, "parseFunctionPtr: return type = %s %s", returnType, tokens.token());
 
     assert(tokens.matches(TKind.LPAREN));
 
@@ -448,7 +448,7 @@ ParseTypeResult parseFunctionPtr(Node parent, Tokens tokens, Type returnType) {
  * Type { '[' [ Expr ] ']' }
  */
 ParseTypeResult parseArrayType(Node parent, Tokens tokens, Type type) {
-    log("parseArrayType: %s %s", type, tokens.token());
+    log(Log.TypeParser, "parseArrayType: %s %s", type, tokens.token());
 
     ArrayType at = new ArrayType();
 

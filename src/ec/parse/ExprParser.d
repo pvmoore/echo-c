@@ -3,7 +3,7 @@ module ec.parse.ExprParser;
 import ec.all;
 
 void parseExpr(Node parent, Tokens tokens) {
-    log("parseExpr %s", tokens.token());
+    log(Log.ExprParser, "parseExpr %s", tokens.token());
     parseLHS(parent, tokens);
     parseRHS(parent, tokens);
 }
@@ -13,7 +13,7 @@ void parseExpr(Node parent, Tokens tokens) {
  * This ensures expressions with lower priority are not moved above parent in the AST.
  */
 void parseExprWithUpperBound(Node parent, Tokens tokens) {
-    log("parseExprWithUpperBound %s", tokens.token());
+    log(Log.ExprParser, "parseExprWithUpperBound %s", tokens.token());
     
     // Use Parens as an upper bound ceiling
     auto p = tokens.make!Parens();
@@ -171,10 +171,10 @@ void parseRHS(Node parent, Tokens tokens) {
                 isCommaOperator |= n.isA!Return;
 
                 if(!isCommaOperator) {
-                    log("parseExpr: not a COMMA, parent = %s", className(parent));
+                    log(Log.ExprParser, "parseExpr: not a COMMA, parent = %s", className(parent));
                     return;
                 }
-                log("parseExpr: COMMA parent = %s", className(parent));
+                log(Log.ExprParser, "parseExpr: COMMA parent = %s", className(parent));
                 
                 auto c = parseAndReturnComma(tokens);
                 parent = attachAndRead(parent, c, tokens, true);
@@ -348,7 +348,7 @@ void parseCast(Node parent, Tokens tokens, Type type) {
  * SINGLE_INIT ::= '{' Expr '}'
  */
 void parseInitialiser(Node parent, Tokens tokens) {
-    log("parseInitialiser %s", tokens.token());
+    log(Log.ExprParser, "parseInitialiser %s", tokens.token());
     Initialiser init = tokens.make!Initialiser();
     parent.add(init);
 

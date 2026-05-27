@@ -6,7 +6,7 @@ import std.file : write;
 final class StmtGenerator {
 public:
     void generate(CFile cfile) {
-        log("Generating %s", cfile.filename);
+        log(Log.StmtGenerator, "Generating %s", cfile.filename);
         buf = new StringBuffer();
 
         buf.add("/*\n");
@@ -100,7 +100,7 @@ private:
 
     void generate(Stmt stmt) {
         //buf.add("/* %s */", stmt.estmt);
-        log("generate %s %s", stmt.estmt, stmt);
+        log(Log.StmtGenerator, "generate %s %s", stmt.estmt, stmt);
         switch(stmt.estmt) {
             case EStmt.ADDRESSOF: generate(stmt.as!Addressof); break;
             case EStmt.BREAK: generate(stmt.as!Break); break;

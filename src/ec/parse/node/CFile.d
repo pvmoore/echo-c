@@ -19,7 +19,7 @@ public:
      * Optimisation to make it quicker to lookup typedefs.
      */
     void registerTypedef(Typedef td) {
-        log("registering Typedef %s = %s", td.name, td.type);
+        //log(Log.All, "registering Typedef %s = %s", td.name, td.type);
         typedefs[td.name] = td;
     }
 
