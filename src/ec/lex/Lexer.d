@@ -210,8 +210,9 @@ public:
         return tokens;
     }
 private:
-    string relativeFilename;
-    string source;
+    const string relativeFilename;
+    const string source;
+
     int pos;
     int line = 1;
     int tokenStart;
@@ -238,16 +239,14 @@ private:
             else if(ch1 == '"') tk2 = TKind.STRING;
             else if(isDigit(ch1) || (ch1=='-' && isDigit(ch2)) || (ch1=='.' && isDigit(ch2))) tk2 = TKind.NUMBER;
         
-            tokens ~= Token(tk2, text, line, column, 
-                originalLine, originalFilenameIndex);
+            tokens ~= Token(tk2, text, line, column, originalLine, originalFilenameIndex);
         }
         if(tk != TKind.NONE) {
             int len = lengthOf(tk);
             string text = source[pos..pos+len];
             int column  = pos - lineStart;
 
-            tokens ~= Token(tk, text, line, column, 
-                originalLine, originalFilenameIndex); 
+            tokens ~= Token(tk, text, line, column, originalLine, originalFilenameIndex); 
             pos += len;
         }
         // Reset the token start position
@@ -289,8 +288,8 @@ private:
         } else {
             this.originalFilenameIndex = g_originalFilenamesArray.length.as!uint;
             
-            g_originalFilenames[filenameStr] = g_originalFilenamesArray.length.as!uint;
-            g_originalFilenamesArray ~= filenameStr;
+            g_originalFilenames[filenameStr] = this.originalFilenameIndex;
+            g_originalFilenamesArray        ~= filenameStr;
         }
     }
     void consumeWhitespace() {
@@ -378,7 +377,7 @@ private:
         return peek(offset).isOneOf(10, 13);
     }
     void eol() {
-        // can be 13,10 or just 10
+        // can be 13,10 (windows) or just 10 (linux/modern mac) or just 13 (old mac)
         if(peek()==13) pos++;
         if(peek()==10) pos++;
         line++;

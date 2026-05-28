@@ -31,6 +31,8 @@ public:
     static struct Element {
         ElementKind kind;
 
+        // todo - use a union here
+
         uint exprIndex;     // the expr index in children         
         uint arrayIndex;    // the [index] if this is an INDEX_EXPR
         string label;       // the label if this is a LABEL_EXPR

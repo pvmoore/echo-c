@@ -13,8 +13,8 @@ public:
         super(estmt, location);
     }
 
-    bool hasExpr() { return children.length > 0; }
-    Expr expr() { assert(hasExpr()); return children[0].as!Expr; }
+    bool hasExpr() { return hasChildren(); }
+    Expr expr() { assert(hasExpr()); return first().as!Expr; }
 
     override string toString() {
         return "return";

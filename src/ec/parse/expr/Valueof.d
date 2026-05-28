@@ -12,7 +12,7 @@ public:
         super(estmt, location);
     }
 
-    Expr expr() { return children[0].as!Expr; }
+    Expr expr() { return first().as!Expr; }
 
     override int precedence() { return 2; }
 

@@ -22,9 +22,11 @@ public:
         FunctionPtr t = new FunctionPtr();
         t.ptrs = ptrs.dup;
         t.modifiers = modifiers;
+
         t.varName = varName;
         t.params = params.dup;
         t.returnType = returnType;
+        t.callingConvention = callingConvention;
         return t;
     }
 

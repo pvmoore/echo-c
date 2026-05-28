@@ -14,7 +14,7 @@ struct ParseTypeResult {
 }
 
 ParseTypeResult isType(Node parent, Tokens tokens, int offset = 0) {
-    log(Log.TypeParser, "isType: %s", tokens.token());
+    log(Log.TypeParser, "isType: %s", tokens.token(offset));
 
     tokens.pushState();
     scope(exit) tokens.popState();

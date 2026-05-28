@@ -7,6 +7,7 @@ public:
     Config config;
     string filename;
     Token[] tokens;
+    
     Typedef[string] typedefs;
 
     this(Config config, string filename, Token[] tokens) {

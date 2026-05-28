@@ -24,8 +24,10 @@ void main() {
 
         EC ec = testMiniVrt();
 
+        writefln("Testing mini_vrt ...");
         ec.resolve();
         ec.generate();
+        writefln("  Done");
     }
 
     import ec.preprocess.Preprocessor;
@@ -67,10 +69,11 @@ void runTests() {
         string filename = e.name.baseName().stripExtension();
         runTest(filename);
     }
+    writefln("Test suite \u001b[32mpassed\u001b[0m");
 }
 
 void runTest(string filename) {
-    writefln("Running test %s.c ...", filename);
+    writefln("[Running test %s.c]", filename);
     Config conf = {
         sourceDirectory: "resources/test-data/",
         targetDirectory: ".target/test-data/",
@@ -103,11 +106,10 @@ void runTest(string filename) {
         truthFilename = expectFile;
     }
 
-    writefln("Comparing %s -> %s", truthFilename, generatedFilename);
+    writefln("  Comparing %s -> %s", truthFilename, generatedFilename);
     if(comparer.compare(truthFilename, generatedFilename)) {
-        writefln("  Passed: %s", filename);
+        writefln("  Passed");
     } else {
-        writefln("  Failed: %s", filename);
         throw new Exception("Test failed: %s".format(filename));
     }
 }

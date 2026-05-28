@@ -23,9 +23,10 @@ void parseStmt(Node parent, Tokens tokens) {
         tokens.next();
         return;
     }
+    
     log(Log.StmtParser, "parseStmt %s", tokens.token());
 
-    // extern | static | __declspec
+    // extern | static | inline | __declspec
     StorageClass storageClass = parseStorageClass(tokens, StorageClass());
 
     switch(tokens.kind()) {
@@ -111,6 +112,7 @@ void parseStmt(Node parent, Tokens tokens) {
  */
 void parseParamVar(Node parent, Tokens tokens) {
     log(Log.StmtParser, "parseParamVar %s", tokens.token());
+
     Var var = tokens.make!Var();
     parent.add(var);
 

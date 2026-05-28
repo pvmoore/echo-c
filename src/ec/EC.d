@@ -30,10 +30,12 @@ public:
         Lexer lexer = new Lexer(filename, ppOutput);
         Token[] tokens = lexer.tokenise();
 
-        if(tokens.length < 100) {
-            log(Log.General, tokens.toString());
-        } else {
-            log(Log.General, tokens[0..100].toString());
+        static if(false) {
+            if(tokens.length < 100) {
+                log(Log.General, tokens.toString());
+            } else {
+                log(Log.General, tokens[0..100].toString());
+            }
         }
 
         CFile cfile = new CFile(config, filename, tokens);

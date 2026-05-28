@@ -25,10 +25,11 @@ final class TypeRef : Type {
 
     override Type clone() {
         TypeRef t = new TypeRef(name, etype);
-        t.typeRef = typeRef;
-        t.nodeRef = nodeRef;
         t.ptrs = ptrs.dup;
         t.modifiers = modifiers;
+        
+        t.typeRef = typeRef;
+        t.nodeRef = nodeRef;
         return t;
     }
 

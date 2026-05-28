@@ -23,6 +23,7 @@ public:
         ArrayType t = new ArrayType();
         t.ptrs = ptrs.dup;
         t.modifiers = modifiers;
+        
         t.varName = varName;
         return t;
     }
