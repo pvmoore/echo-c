@@ -4,6 +4,7 @@ import std.stdio    : writefln, writeln;
 import std.format   : format;
 import std.file     : dirEntries, SpanMode, exists, timeLastModified;
 import std.path     : baseName, stripExtension;
+import std.process  : environment;
 
 import test.test_comparer;
 import ec;
@@ -18,9 +19,14 @@ void main() {
     static if(RUN_TEST_SUITE) {
         runTestSuite();
     }
+
+    // These only assert that no errors occur
     static if(RUN_LARGE_TESTS) {
-        testMiniVrt();
-        testWindows();
+        // testMiniVrt();
+        // testWindows();
+        // testCimgui();
+        // testVma();
+        testKtx();
     }
 
     import ec.preprocess.Preprocessor;
@@ -28,18 +34,25 @@ void main() {
     writefln("  clang: %.2f s", Preprocessor.totalTimeClang / 1_000_000_000.0);
     writefln("  cl:    %.2f s", Preprocessor.totalTimeCl / 1_000_000_000.0);
 }
- 
+
+//────────────────────────────────────────────────────────────────────────────────────────────────── 
 private: 
 
 void testMiniVrt() {
     writefln("Testing mini_vrt ...");
 
+    string vulkanInclude = environment.get("VULKAN_SDK") ~ "/Include";
+    string glfwInclude   = "C:/work/glfw-3.4.bin.WIN64/include";
+
+    writefln("  Vulkan include : %s", vulkanInclude);
+    writefln("  GLFW include   : %s", glfwInclude);
+
     Config conf = {
         sourceDirectory: "C:/pvmoore/d/experimental/mini_vrt/c/src/",
         targetDirectory: ".target/test-mini_vrt/",
         includeDirectories: [
-            "C:/work/VulkanSDK/1.4.350.0/Include",
-            "C:/work/glfw-3.4.bin.WIN64/include"
+            vulkanInclude,
+            glfwInclude
         ]
     };
     
@@ -63,6 +76,66 @@ void testWindows() {
     EC ec = new EC(conf);
 
     ec.addCFile("test_windows.c");
+    ec.resolve();
+    ec.generate();
+    writefln("  Done");
+}
+void testCimgui() {
+    writefln("Testing cimgui ...");
+
+    Config conf = {
+        sourceDirectory: "resources/large-tests/",
+        targetDirectory: ".target/test-cimgui/",
+        includeDirectories: [
+            "c:/pvmoore/cpp/cimgui/"
+            //"c:/pvmoore/cpp/cimgui/imgui/"
+        ]
+    };
+    
+    EC ec = new EC(conf);
+
+    ec.addCFile("test_cimgui.c");
+    ec.resolve();
+    ec.generate();
+    writefln("  Done");
+}
+void testVma() {
+    writefln("Testing vma ...");
+
+    string vulkanInclude = environment.get("VULKAN_SDK") ~ "/Include";
+
+    Config conf = {
+        sourceDirectory: "resources/large-tests/",
+        targetDirectory: ".target/test-vma/",
+        includeDirectories: [
+            vulkanInclude,
+            vulkanInclude ~ "/vma/"
+        ]
+    };
+    
+    EC ec = new EC(conf);
+
+    ec.addCFile("test_vma.c");
+    ec.resolve();
+    ec.generate();
+    writefln("  Done");
+}
+void testKtx() {
+    writefln("Testing ktx ...");
+
+    Config conf = {
+        sourceDirectory: "resources/large-tests/",
+        targetDirectory: ".target/test-ktx/",
+        includeDirectories: [
+            "C:/Temp/KTX-Software-5.0.0-rc1/lib/include/",
+            "C:/Temp/KTX-Software-5.0.0-rc1/external/dfdutils/",
+            environment.get("VULKAN_SDK") ~ "/Include"
+        ]
+    };
+    
+    EC ec = new EC(conf);
+
+    ec.addCFile("test_ktx.c");
     ec.resolve();
     ec.generate();
     writefln("  Done");
