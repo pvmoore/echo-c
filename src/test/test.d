@@ -23,10 +23,12 @@ void main() {
     // These only assert that no errors occur
     static if(RUN_LARGE_TESTS) {
         // testMiniVrt();
-        // testWindows();
+        //largeTest("windows");
+        //largeTest("stdio");
+        largeTest("stdlib");
         // testCimgui();
         // testVma();
-        testKtx();
+        //testKtx();
     }
 
     import ec.preprocess.Preprocessor;
@@ -37,6 +39,29 @@ void main() {
 
 //────────────────────────────────────────────────────────────────────────────────────────────────── 
 private: 
+
+void largeTest(string name) {
+    writefln("Testing %s ...", name);
+
+    Config conf = {
+        sourceDirectory: "resources/large-tests/",
+        targetDirectory: ".target/test-%s/".format(name),
+        includeDirectories: []
+    };
+    
+    EC ec = new EC(conf);
+
+    ec.addCFile("test_%s.c".format(name)); 
+    ec.resolve();
+    ec.generate();
+
+    // Compare the generated output to the preprocessed output
+    string truthFile = ".target/test-%s/test_%s.i".format(name, name);
+    string generatedFile = ".target/test-%s/test_%s.c".format(name, name);
+    writefln("  Comparing %s -> %s", truthFile, generatedFile);
+    new TestComparer().compareRelaxed(truthFile, generatedFile);
+    writefln("  Done");
+}
 
 void testMiniVrt() {
     writefln("Testing mini_vrt ...");
@@ -60,22 +85,6 @@ void testMiniVrt() {
     EC ec = new EC(conf);
 
     ec.addCFile("main.c");
-    ec.resolve();
-    ec.generate();
-    writefln("  Done");
-}
-void testWindows() {
-    writefln("Testing Windows ...");
-
-    Config conf = {
-        sourceDirectory: "resources/large-tests/",
-        targetDirectory: ".target/test-windows/",
-        includeDirectories: []
-    };
-    
-    EC ec = new EC(conf);
-
-    ec.addCFile("test_windows.c");
     ec.resolve();
     ec.generate();
     writefln("  Done");
@@ -192,7 +201,7 @@ void runTest(string filename) {
     }
 
     writefln("  Comparing %s -> %s", truthFilename, generatedFilename);
-    if(comparer.compare(truthFilename, generatedFilename)) {
+    if(comparer.compareStrict(truthFilename, generatedFilename)) {
         writefln("  Passed");
     } else {
         throw new Exception("Test failed: %s".format(filename));

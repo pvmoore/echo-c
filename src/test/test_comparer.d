@@ -1,28 +1,22 @@
 module test.test_comparer;
 
-import std.stdio  : writefln;
-import std.file   : read;
-import std.format : format;
+import std.stdio     : writefln;
+import std.file      : read;
+import std.format    : format;
+import std.typecons  : Tuple, tuple;
+import std.algorithm : map;
+import std.range     : array, join;
 
 import common.utils;
 
 final class TestComparer {
 public:
-    bool compare(string srcFile, string targetFile) {
+    bool compareStrict(string srcFile, string targetFile) {
         auto src = read(srcFile).as!string;
         auto target = read(targetFile).as!string;
 
         auto srcTokens = tokenise(src);
         auto targetTokens = tokenise(target);
-
-        // writefln("Src tokens:");
-        // foreach(i; 0..10) {
-        //     writefln("%s", srcTokens[i].toString());
-        // }
-        // writefln("Target tokens:");
-        // foreach(i; 0..10) {
-        //     writefln("%s", targetTokens[i].toString());
-        // }
 
         if(srcTokens.length != targetTokens.length) {
             writefln("Token count mismatch: %s != %s", srcTokens.length, targetTokens.length);
@@ -42,6 +36,192 @@ public:
                 return false;
             }
         }
+        return true;
+    }
+    bool compareRelaxed(string expectedFile, string genFile) {
+        string expected = read(expectedFile).as!string;
+        string gen      = read(genFile).as!string;
+
+        Token[] expTokens = tokenise(expected);
+        Token[] genTokens = tokenise(gen);
+
+        int expPos;
+        int genPos;
+
+        string peekExpected(int offset, bool simplify = false) {
+            if(expPos + offset >= expTokens.length) return "";
+            string s = expTokens[expPos + offset].text;
+            if(simplify) {
+                if(s[0] == '\"') s = "<string>";
+            }
+            return s;
+        }
+        string peekGenerated(int offset, bool simplify = false) {
+            if(genPos + offset >= genTokens.length) return "";
+            string s = genTokens[genPos + offset].text;
+            if(simplify) {
+                if(s[0] == '\"') s = "<string>";
+            }
+            return s;
+        }
+        bool expMatches(string[] t...) {
+            foreach(i; 0..t.length) {
+                string s = peekExpected(i.as!int, true);
+                if(s != t[i]) return false;
+            }
+            return true;
+        }
+        bool genMatches(string[] t...) {
+            foreach(i; 0..t.length) {
+                string s = peekGenerated(i.as!int, true);
+                if(s != t[i]) return false;
+            }
+            return true;
+        }
+        bool eitherMatches(string[] text...) {
+            return expMatches(text) || genMatches(text);
+        }
+        void skipToNextExpectedLine() {
+            int line = expTokens[expPos].line;
+            do{
+                expPos++;
+            }while(expPos < expTokens.length && expTokens[expPos].line == line);
+        }
+        struct AllowedMatch {
+            string[] expValues;
+            string[] genValues; // if different
+            bool anyOrder;
+
+            this(string[] values, bool anyOrder) {
+                this.expValues = values;
+                this.genValues = values;
+                this.anyOrder = anyOrder;
+            }
+            this(string[] expValues, string[] genValues, bool anyOrder) {
+                this.expValues = expValues;
+                this.genValues = genValues;
+                this.anyOrder = anyOrder;
+            }
+
+            bool isMatch() {
+                if(anyOrder) {
+                    return matchesAnyOrder();
+                }
+                return matchesInOrder(); 
+            }
+            bool matchesInOrder() {
+                return(expMatches(expValues) && genMatches(genValues));
+            }
+            bool matchesAnyOrder() {
+                bool[string] expSeen;
+                bool[string] genSeen;
+
+                foreach(i; 0..expValues.length) {
+                    expSeen[peekExpected(i.as!int, true)] = true;
+                }
+                foreach(i; 0..genValues.length) {
+                    genSeen[peekGenerated(i.as!int, true)] = true;
+                }
+                foreach(v; expValues) {
+                    if(v !in expSeen) {
+                        return false;
+                    }
+                }
+                foreach(v; genValues) {
+                    if(v !in genSeen) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            string toString() {
+                return "exp: %s gen: %s anyOrder: %s".format(expValues, genValues, anyOrder);
+            }
+        }
+        AllowedMatch NO_ALLOWED_MATCH = AllowedMatch([], [], false);
+        AllowedMatch[] allowedMatches = [
+            AllowedMatch(["__int64"], 
+                         ["long", "long"], false),
+            AllowedMatch(["const", "wchar_t"], true),
+            AllowedMatch(["const", "_locale_t"], true),
+            AllowedMatch(["const", "size_t"], true),
+            AllowedMatch(["const", "int"], true),
+            AllowedMatch(["const", "char"], true),
+            AllowedMatch(["const", "fpos_t"], true),
+            AllowedMatch(["const", "void"], true),
+
+            AllowedMatch(["const", "unsigned", "short"], true),
+            AllowedMatch(["__declspec", "(", "noinline", ")", "__inline", "unsigned", "__int64"], 
+                         ["__declspec", "(", "noinline", ")", "__inline", "unsigned", "long", "long"], true),
+
+            AllowedMatch(["__inline", "int", "__cdecl", "__declspec", "(", "deprecated", "(", "<string>", "<string>", "<string>", "<string>", ")", ")"], true),            
+        ];
+        Tuple!(bool, "isMatch", AllowedMatch, "match") checkAllowedMatches() {
+            foreach(m; allowedMatches) {
+                if(m.isMatch()) return tuple!("isMatch", "match")(true, m);
+            }
+            return tuple!("isMatch", "match")(false, NO_ALLOWED_MATCH);
+        }
+
+        while(expPos < expTokens.length && genPos < genTokens.length) {
+
+            // Skip #pragma once in the expected stream
+            if(expMatches("#", "pragma", "once")) {
+                writefln("Skipping #pragma once");
+                skipToNextExpectedLine();
+                continue;
+            }
+            // Skip #pragma region in the expected stream
+            if(expMatches("#", "pragma", "region")) {
+                writefln("Skipping #pragma region");
+                skipToNextExpectedLine();
+                continue;
+            }
+            // Skip #pragma endregion in the expected stream
+            if(expMatches("#", "pragma", "endregion")) {
+                writefln("Skipping #pragma endregion");
+                skipToNextExpectedLine();
+                continue;
+            }
+            // unsigned -> unsigned int match
+            if(genMatches("unsigned", "int") && expMatches("unsigned") && expTokens[expPos+1].text != "int") {
+                writefln("Skipping unsigned -> unsigned int match");
+                expPos++;
+                genPos+=2;
+                continue;
+            }
+
+            string expToken = peekExpected(0);
+            string genToken = peekGenerated(0);
+
+            bool equal = expToken == genToken;
+            
+            if(!equal) {
+                auto m = checkAllowedMatches();
+                if(m.isMatch) {
+                    writefln("    Allowed match @ line exp.%s, gen.%s:", expTokens[expPos].line, genTokens[genPos].line);
+                    writefln("     exp: %s", expTokens[expPos..expPos + m.match.expValues.length].map!(t=>t.text).join(" "));
+                    writefln("          %s", m.match.expValues);
+                    writefln("     gen: %s", genTokens[genPos..genPos + m.match.genValues.length].map!(t=>t.text).join(" "));
+                    writefln("          %s", m.match.genValues);
+                    expPos += m.match.expValues.length;
+                    genPos += m.match.genValues.length;
+                    continue;
+                }
+
+                writefln("expected[%s '%s'] != generated[%s '%s']", expTokens[expPos].line, expToken, genTokens[genPos].line, genToken);
+                return false;
+            }
+
+            expPos++;
+            genPos++;
+        }
+
+        if(expPos < expTokens.length || genPos < genTokens.length) {
+            writefln("Token length mismatch: %s != %s", expPos, genPos);
+            return false;
+        }
+
         return true;
     }
 

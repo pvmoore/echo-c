@@ -328,7 +328,11 @@ private:
         buf.add(")");
     }
     void generate(Pragma pragma_) {
-        buf.add("#pragma ");
+        if(pragma_.isHash) {
+            buf.add("#pragma ");
+        } else {
+            buf.add("__pragma(");
+        }
         switch(pragma_.kind) {
             case Pragma.PragmaKind.WARNING: 
                 buf.add("warning(");
@@ -373,6 +377,10 @@ private:
                 buf.add("comment(%s)", pragma_.data.comment.comments.join(", "));
                 break;
             default: todo("generate(Pragma): implement %s".format(pragma_.kind));
+        }
+
+        if(!pragma_.isHash) {
+            buf.add(")");
         }
     }
     void generate(Postfix p) {

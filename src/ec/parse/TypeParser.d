@@ -34,6 +34,7 @@ ParseTypeResult parseType(Node parent, Tokens tokens, bool required = true) {
     TypeModifiers q = parseModifiers(tokens);
 
     type = parseSimpleType(tokens);
+    
 
     if(!type && tokens.matches("struct")) {
         type = parseStruct(tokens);

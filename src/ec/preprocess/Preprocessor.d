@@ -4,6 +4,14 @@ import ec.all;
 
 final class Preprocessor {
 public:
+    enum {
+        CL      = 1,
+        CLANG   = 2,
+        ALL     = CL | CLANG
+    }
+    enum processors = CL | 0;
+    enum primary    = CL;
+
     shared static ulong totalTimeCl;
     shared static ulong totalTimeClang;
 
@@ -11,18 +19,28 @@ public:
         this.config = conf;
     }
     string process(string filename) {
-        bool useClang = false;
+        string output;
 
-        string clangOutput = processUsingClang(filename, useClang);
-        string clOutput    = processUsingMicrosoftCL(filename, !useClang);
+        if(processors & CL) {
+            string clOutput = processUsingMicrosoftCL(filename);
+            if(!output) output = clOutput;
+        }
+        if(processors & CLANG) {
+            string clangOutput = processUsingClang(filename);
+            if(!output) output = clangOutput;
+        }
 
-        return useClang ? clangOutput : clOutput;
+        if(config.writePreprocessedFiles) {
+            writeOutput(filename, "", output);
+        }
+
+        return output;
     }
 
     /**
      * Call Microsoft CL compiler to preprocess a file.
      */
-    string processUsingMicrosoftCL(string filename, bool isPrimary) {
+    string processUsingMicrosoftCL(string filename) {
         StopWatch watch;
         watch.start();
 
@@ -68,15 +86,7 @@ public:
             .join("\n");
 
         if(config.writePreprocessedFiles) {
-            import std.file : write;
-            if(isPrimary) {
-                string ppFilename = config.targetDirectory ~ filename.stripExtension() ~ ".i";
-                write(ppFilename, output);
-            }
-            {
-                string ppFilename = config.targetDirectory ~ filename.stripExtension() ~ ".cl.i";
-                write(ppFilename, output);
-            }
+            writeOutput(filename, ".cl", output);
         }
 
         watch.stop();
@@ -86,7 +96,7 @@ public:
     /**
      * Call Clang compiler to preprocess a file.
      */
-    string processUsingClang(string filename, bool isPrimary) {
+    string processUsingClang(string filename) {
         StopWatch watch;
         watch.start();
 
@@ -135,15 +145,7 @@ public:
             .join("\n");
 
         if(config.writePreprocessedFiles) {
-            import std.file : write;
-            if(isPrimary) {
-                string ppFilename = config.targetDirectory ~ filename.stripExtension() ~ ".i";
-                write(ppFilename, output);
-            }
-            {
-                string ppFilename = config.targetDirectory ~ filename.stripExtension() ~ ".clang.i";
-                write(ppFilename, output);
-            }
+            writeOutput(filename, ".clang", output);
         }
 
         watch.stop();
@@ -152,4 +154,11 @@ public:
     }
 private:
     Config config;
+
+    void writeOutput(string filename, string postfix, string output) {
+        import std.file : write;
+
+        string ppFilename = config.targetDirectory ~ filename.stripExtension() ~ postfix ~ ".i";
+        write(ppFilename, output);
+    }
 }
