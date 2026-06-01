@@ -6,7 +6,8 @@ import std.file     : dirEntries, SpanMode, exists, timeLastModified;
 import std.path     : baseName, stripExtension;
 import std.process  : environment;
 
-import test.test_comparer;
+import test.CompareStrict;
+import test.CompareRelaxed;
 import ec;
 
 enum RUN_TEST_SUITE  = true;
@@ -23,9 +24,11 @@ void main() {
     // These only assert that no errors occur
     static if(RUN_LARGE_TESTS) {
         // testMiniVrt();
-        //largeTest("windows");
-        //largeTest("stdio");
-        largeTest("stdlib");
+        largeTest("windows");
+        // largeTest("stdio");
+        //largeTest("stdlib");
+        //largeTest("vulkan", [environment.get("VULKAN_SDK") ~ "/Include"]);
+
         // testCimgui();
         // testVma();
         //testKtx();
@@ -40,27 +43,28 @@ void main() {
 //────────────────────────────────────────────────────────────────────────────────────────────────── 
 private: 
 
-void largeTest(string name) {
+void largeTest(string name, string[] includeDirectories...) {
     writefln("Testing %s ...", name);
 
     Config conf = {
         sourceDirectory: "resources/large-tests/",
         targetDirectory: ".target/test-%s/".format(name),
-        includeDirectories: []
+        includeDirectories: includeDirectories
     };
+
+    writefln("  Including: %s", conf.includeDirectories);
     
     EC ec = new EC(conf);
 
     ec.addCFile("test_%s.c".format(name)); 
-    ec.resolve();
     ec.generate();
 
     // Compare the generated output to the preprocessed output
-    string truthFile = ".target/test-%s/test_%s.i".format(name, name);
+    string expectedFile = ".target/test-%s/test_%s.i".format(name, name);
     string generatedFile = ".target/test-%s/test_%s.c".format(name, name);
-    writefln("  Comparing %s -> %s", truthFile, generatedFile);
-    new TestComparer().compareRelaxed(truthFile, generatedFile);
-    writefln("  Done");
+    writefln("  Comparing %s -> %s", expectedFile, generatedFile);
+    new CompareRelaxed().compare(expectedFile, generatedFile);
+    writefln("  Finished testing %s", name);
 }
 
 void testMiniVrt() {
@@ -85,7 +89,6 @@ void testMiniVrt() {
     EC ec = new EC(conf);
 
     ec.addCFile("main.c");
-    ec.resolve();
     ec.generate();
     writefln("  Done");
 }
@@ -104,7 +107,6 @@ void testCimgui() {
     EC ec = new EC(conf);
 
     ec.addCFile("test_cimgui.c");
-    ec.resolve();
     ec.generate();
     writefln("  Done");
 }
@@ -125,7 +127,6 @@ void testVma() {
     EC ec = new EC(conf);
 
     ec.addCFile("test_vma.c");
-    ec.resolve();
     ec.generate();
     writefln("  Done");
 }
@@ -145,7 +146,6 @@ void testKtx() {
     EC ec = new EC(conf);
 
     ec.addCFile("test_ktx.c");
-    ec.resolve();
     ec.generate();
     writefln("  Done");
 }
@@ -177,7 +177,6 @@ void runTest(string filename) {
     EC ec = new EC(conf);
 
     ec.addCFile(filename ~ ".c");
-    ec.resolve();
     ec.generate();
 
     string srcFilename       = "resources/test-suite/%s.c".format(filename);
@@ -185,7 +184,7 @@ void runTest(string filename) {
     string truthFilename     = ".target/test-suite/%s.i".format(filename);
     string generatedFilename = ".target/test-suite/%s.c".format(filename);
 
-    auto comparer = new TestComparer();
+    auto comparer = new CompareStrict();
 
     // Use expect file as src
     if(expectFile.exists()) {
@@ -201,7 +200,7 @@ void runTest(string filename) {
     }
 
     writefln("  Comparing %s -> %s", truthFilename, generatedFilename);
-    if(comparer.compareStrict(truthFilename, generatedFilename)) {
+    if(comparer.compare(truthFilename, generatedFilename)) {
         writefln("  Passed");
     } else {
         throw new Exception("Test failed: %s".format(filename));

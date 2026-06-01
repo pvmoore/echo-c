@@ -577,6 +577,7 @@ private:
         buf.add("%s", s.toString());
     }
     void generate(Struct s) {
+        buf.add("%s", s.modifiers);
         buf.add("struct %s", s.name);
 
         if(s.hasBody) {
@@ -590,6 +591,7 @@ private:
         }
     }
     void generate(Union u) {
+        buf.add("%s", u.modifiers);
         buf.add("union %s", u.name);
 
         if(u.hasBody) {
@@ -603,6 +605,7 @@ private:
         }
     }
     void generate(Enum e) {
+        buf.add("%s", e.modifiers);
         buf.add("enum %s", e.name);
 
         if(e.hasBody) {
@@ -614,7 +617,7 @@ private:
                     buf.add(" = ");
                     generate(e.children[m.exprIndex].as!Expr);
                 } 
-                if(i != e.members.length - 1) {
+                if(e.hasTrailingComma || i != e.members.length - 1) {
                     buf.add(",");
                 }
                 newLine();

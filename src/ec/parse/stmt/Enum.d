@@ -12,6 +12,9 @@ public:
     string name;
     bool hasBody;
     Member[] members;
+    bool hasTrailingComma; // true if the last member has a comma after it
+
+    TypeModifiers modifiers;
 
     static struct Member {
         string label;

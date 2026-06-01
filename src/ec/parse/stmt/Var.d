@@ -33,10 +33,6 @@ public:
     Expr bitfield() { assert(hasBitfield); return first().as!Expr; }
     Expr initialiser() { assert(hasInitialiser); return last().as!Expr; }
 
-    override bool isResolved() {
-        return type.isResolved();
-    }
-
     override string toString() {
         string bf = hasBitfield ? " : BITFIELD" : "";
         return "%s %s%s".format(type, name, bf);

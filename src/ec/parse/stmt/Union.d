@@ -15,6 +15,8 @@ public:
 
     bool hasBody;   // true if this is a definition, otherwise this is a declaration
 
+    TypeModifiers modifiers;
+
     this(EStmt estmt, Location location) {
         super(estmt, location);
     }

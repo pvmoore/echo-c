@@ -30,5 +30,5 @@ int foo() {
 }
 typedef enum VkExternalMemoryFeatureFlagBits {
     A = 0x00000001,
-    B = 0x00000002 | 1
+    B = 0x00000002 | 1,
 } VkExternalMemoryFeatureFlagBits;

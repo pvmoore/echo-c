@@ -360,6 +360,9 @@ Type parseEnum(Tokens tokens) {
             }
             if(tokens.matches(TKind.COMMA)) {
                 tokens.next();
+                if(tokens.matches(TKind.RBRACE)) {
+                    enum_.hasTrailingComma = true;
+                }
             }
         }
         tokens.skip(TKind.RBRACE);

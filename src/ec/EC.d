@@ -30,12 +30,14 @@ public:
         Lexer lexer = new Lexer(filename, ppOutput);
         Token[] tokens = lexer.tokenise();
 
-        static if(false) {
-            if(tokens.length < 100) {
-                log(Log.General, tokens.toString());
-            } else {
-                log(Log.General, tokens[0..100].toString());
+        enum WRITE_TOKENS = true;
+        static if(WRITE_TOKENS) {
+            import std.file : write;
+            string t;
+            foreach(token; tokens) {
+                t ~= token.toString() ~ "\n";
             }
+            write(config.targetDirectory ~ filename ~ ".tokens", t);
         }
 
         CFile cfile = new CFile(config, filename, tokens);
@@ -43,37 +45,11 @@ public:
 
         parseCFile(cfile);
 
-        enum WRITE_AST = false;
+        enum WRITE_AST = true;
         static if(WRITE_AST) {
             import std.file : write;
             string dumped = cfile.dumpToString();
             write(config.targetDirectory ~ filename ~ ".ast", dumped);
-        }
-    }
-    /**
-     * Resolve any ambiguous AST nodes.
-     */
-    void resolve() {
-        log(Log.General, "Resolving");
-        Node[] unresolved;
-        void recurse(Node n) {
-            if(!n.isResolved()) {
-                unresolved ~= n;
-            }
-            foreach(ch; n.children) {
-                recurse(ch);
-            }
-        }
-        foreach(cfile; cfiles.values) {
-            recurse(cfile);
-        }
-        if(unresolved.length > 0) {
-            logError("Unresolved nodes found: %s", unresolved.length);
-            foreach(i, u; unresolved) {
-                log(Log.General, "[%s] - %s", i, u);
-
-                todo("resolve this node");
-            }
         }
     }
     void generate() {

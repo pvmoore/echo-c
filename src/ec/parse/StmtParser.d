@@ -86,6 +86,13 @@ void parseStmt(Node parent, Tokens tokens) {
             if(tr.hasChildren()) {
                 Stmt def = tan.type.first().as!Stmt;
                 parent.add(def);
+                if(Struct st = def.as!Struct) {
+                    st.modifiers = tr.modifiers;
+                } else if(Enum en = def.as!Enum) {
+                    en.modifiers = tr.modifiers;
+                } else if(Union un = def.as!Union) {
+                    un.modifiers = tr.modifiers;
+                } else assert(false, "handle %s".format(def));
                 return;
             } else if(parent.isA!CFile || parent.isA!Function) {
                 // struct <name>;

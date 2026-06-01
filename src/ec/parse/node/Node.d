@@ -7,9 +7,6 @@ public:
     Node[] children;
     Node parent;
 
-    // Overridable methods
-    bool isResolved() { return true; }
-
     final bool hasChildren() { return children.length > 0; }
     final int numChildren() { return children.length.as!int; }
 
