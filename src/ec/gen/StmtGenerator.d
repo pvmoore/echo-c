@@ -111,16 +111,17 @@ private:
             case EStmt.DOT: generate(stmt.as!Dot); break;
             case EStmt.DO_WHILE: generate(stmt.as!DoWhile); break;
             case EStmt.ENUM: generate(stmt.as!Enum); break;
-            case EStmt.PARENS: generate(stmt.as!Parens); break;
+            case EStmt.FOR: generate(stmt.as!For); break;
+            case EStmt.FUNC: generate(stmt.as!Function); break;
+            case EStmt.GOTO: generate(stmt.as!Goto); break;
             case EStmt.IDENTIFIER: generate(stmt.as!Identifier); break;
             case EStmt.IF: generate(stmt.as!If); break;
             case EStmt.INDEX: generate(stmt.as!Index); break;
             case EStmt.INFIX: generate(stmt.as!Infix); break; 
             case EStmt.INITIALISER: generate(stmt.as!Initialiser); break;
             case EStmt.LABEL: generate(stmt.as!Label); break;
-            case EStmt.FOR: generate(stmt.as!For); break;
-            case EStmt.FUNC: generate(stmt.as!Function); break;
             case EStmt.NUMBER: generate(stmt.as!Number); break;
+            case EStmt.PARENS: generate(stmt.as!Parens); break;
             case EStmt.PRAGMA: generate(stmt.as!Pragma); break;
             case EStmt.PREFIX: generate(stmt.as!Prefix); break;
             case EStmt.POSTFIX: generate(stmt.as!Postfix); break;
@@ -251,6 +252,10 @@ private:
             }
             closeScope();
         } 
+    }
+    void generate(Goto g) {
+        buf.add("goto ");
+        generate(g.first().as!Identifier);
     }
     void generate(Identifier id) {
         buf.add(id.name);

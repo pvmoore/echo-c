@@ -14,7 +14,7 @@ public:
     }
 
     override int precedence() {
-        return 15;
+        return PRECEDENCE_LITERAL;
     }
 
     override string toString() {

@@ -16,7 +16,7 @@ public:
     Expr pointer() { return last().as!Expr; }
     Expr[] exprs() { return children[0..$-1].as!(Expr[]); }
 
-    override int precedence() { return 1; }
+    override int precedence() { return PRECEDENCE_INDEX; }
 
     override string toString() { 
         return "Index"; 

@@ -14,7 +14,7 @@ public:
         super(estmt, location);
     }  
 
-    override int precedence() { return 15; }
+    override int precedence() { return PRECEDENCE_LITERAL; }
 
     override string toString() {
         return "Number(%s)".format(stringValue);

@@ -16,7 +16,7 @@ public:
     Expr left() { return first().as!Expr; }
     Expr right() { return last().as!Expr; }
 
-    override int precedence() { return 15; }
+    override int precedence() { return PRECEDENCE_COMMA; }
 
     override string toString() {
         return ",";

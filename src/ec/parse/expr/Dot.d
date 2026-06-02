@@ -18,7 +18,7 @@ public:
     Expr left() { return first().as!Expr; }
     Expr right() { return last().as!Expr; }
 
-    override int precedence() { return 1; }
+    override int precedence() { return PRECEDENCE_DOT; }
 
     override string toString() {
         return "Dot";

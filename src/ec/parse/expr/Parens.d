@@ -14,7 +14,7 @@ public:
 
     Expr expr() { return first().as!Expr; }
 
-    override int precedence() { return 15; }
+    override int precedence() { return PRECEDENCE_PARENS; }
 
     override string toString() {
         return "()";

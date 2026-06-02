@@ -155,6 +155,7 @@ public:
         else static if(is(T == Switch)) t = new T(EStmt.SWITCH, loc);
         else static if(is(T == Index)) t = new T(EStmt.INDEX, loc);
         else static if(is(T == Comma)) t = new T(EStmt.COMMA, loc);
+        else static if(is(T == Goto)) t = new T(EStmt.GOTO, loc);
 
         else {
             static assert(false, "Unsupported statement type %s".format(T.stringof));

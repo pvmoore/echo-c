@@ -30,7 +30,7 @@ public:
         Lexer lexer = new Lexer(filename, ppOutput);
         Token[] tokens = lexer.tokenise();
 
-        enum WRITE_TOKENS = true;
+        enum WRITE_TOKENS = false;
         static if(WRITE_TOKENS) {
             import std.file : write;
             string t;
@@ -45,7 +45,7 @@ public:
 
         parseCFile(cfile);
 
-        enum WRITE_AST = true;
+        enum WRITE_AST = false;
         static if(WRITE_AST) {
             import std.file : write;
             string dumped = cfile.dumpToString();

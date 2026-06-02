@@ -165,6 +165,12 @@ Operator parsePostfixOperator(Tokens tokens) {
     return op;
 }
 
+enum PRECEDENCE_DOT     = 1; 
+enum PRECEDENCE_INDEX   = 1;
+enum PRECEDENCE_LITERAL = 15;   // Number, Identifier
+enum PRECEDENCE_PARENS  = 15;
+enum PRECEDENCE_COMMA   = 15;
+
 int precedenceOf(Operator op) {
     final switch(op) with(Operator) {
         // call, dot, index, rtarrow -> 1

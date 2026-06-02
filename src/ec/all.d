@@ -54,6 +54,7 @@ import ec.parse.stmt.DoWhile;
 import ec.parse.stmt.Enum;
 import ec.parse.stmt.For;
 import ec.parse.stmt.Function;
+import ec.parse.stmt.Goto;
 import ec.parse.stmt.If;
 import ec.parse.stmt.Label;
 import ec.parse.stmt.Pragma;

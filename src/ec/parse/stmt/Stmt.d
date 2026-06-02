@@ -55,6 +55,7 @@ enum EStmt {
     ENUM,
     FOR,
     FUNC,
+    GOTO,
     IF,
     LABEL, 
     PRAGMA,

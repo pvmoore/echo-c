@@ -33,6 +33,14 @@ final class CompareRelaxed {
         }
         return s;
     }
+    int peekExpectedLine(int offset = 0) {
+        if(expPos + offset >= expTokens.length) return 0;
+        return expTokens[expPos + offset].line;
+    }
+    int peekGeneratedLine(int offset = 0) {
+        if(genPos + offset >= genTokens.length) return 0;
+        return genTokens[genPos + offset].line;
+    }
     bool expMatchesN(int offset, string[] t...) {
         foreach(i; 0..t.length) {
             string s = peekExpected(i.as!int + offset, true);
@@ -71,6 +79,12 @@ final class CompareRelaxed {
 
         while(expPos < expTokens.length && genPos < genTokens.length) {
 
+            // Skip backslash
+            if(expMatches("\\")) {
+                writefln("Skipping backslash @ exp.%s, gen.%s:", expTokens[expPos].line, genTokens[genPos].line);
+                expPos++;
+                continue;
+            }
             // Skip #pragma once in the expected stream
             if(expMatches("#", "pragma", "once")) {
                 writefln("Skipping #pragma once");
@@ -107,18 +121,14 @@ final class CompareRelaxed {
             string expToken = peekExpected(0);
             string genToken = peekGenerated(0);
 
-            bool equal = expToken == genToken;
+            // Look for an exact match
+            bool exactEqual = expToken == genToken;
             
-            if(!equal) {
-                auto m = FuzzyMatch.findFirstMatch(this);
-                if(m.found) {
-                    writefln("    Allowed match @ line exp.%s, gen.%s:", expTokens[expPos].line, genTokens[genPos].line);
-                    writefln("     exp: %s", expTokens[expPos..expPos + m.expLength].map!(t=>t.text).join(" "));
-                    writefln("          %s", m.match.expValues);
-                    writefln("     gen: %s", genTokens[genPos..genPos + m.genLength].map!(t=>t.text).join(" "));
-                    writefln("          %s", m.match.genValues);
-                    expPos += m.expLength;
-                    genPos += m.genLength;
+            if(!exactEqual) {
+                // Enter fuzzy match mode
+
+                bool fuzzyEqual = fuzzyCompare();
+                if(fuzzyEqual) {
                     continue;
                 }
 
@@ -136,5 +146,37 @@ final class CompareRelaxed {
         }
 
         return true;
+    }    
+private:
+    bool fuzzyCompare() {
+
+        auto m = FuzzyMatch.findFirstMatch(this);
+
+        bool found() {
+            writefln("    Allowed match @ line exp.%s, gen.%s:", expTokens[expPos].line, genTokens[genPos].line);
+            writefln("     exp: %s", expTokens[expPos..expPos + m.expLength].map!(t=>t.text).join(" "));
+            writefln("          %s", m.match.expValues);
+            writefln("     gen: %s", genTokens[genPos..genPos + m.genLength].map!(t=>t.text).join(" "));
+            writefln("          %s", m.match.genValues);
+            expPos += m.expLength;
+            genPos += m.genLength;
+            return true;
+        }
+
+        if(m.found) {
+            return found();
+        } else {
+            // Reverse up to 2 tokens to see if we can match
+            foreach(offset; 0..2) {
+                expPos--;
+                genPos--;
+
+                m = FuzzyMatch.findFirstMatch(this);
+                if(m.found) {
+                    return found();
+                }
+            }
+        }        
+        return false;
     }    
 }

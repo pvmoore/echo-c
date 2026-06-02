@@ -47,6 +47,7 @@ void parseStmt(Node parent, Tokens tokens) {
                 case "break": parseBreak(parent, tokens); return;
                 case "continue": parseContinue(parent, tokens); return;
                 case "switch": parseSwitch(parent, tokens); return;
+                case "goto": parseGoto(parent, tokens); return;
                 default: break;
             }
             break;
@@ -291,6 +292,16 @@ void parseFunc(Node parent, Tokens tokens, ParseTypeResult typeAndName, StorageC
             tokens.skip(TKind.SEMI_COLON);
         }
     }
+}
+
+void parseGoto(Node parent, Tokens tokens) {
+    Goto goto_ = tokens.make!Goto();
+    parent.add(goto_);
+    tokens.skip("goto");
+
+    parseExpr(goto_, tokens);
+
+    tokens.skip(TKind.SEMI_COLON);
 }
 
 void parseHash(Node parent, Tokens tokens) {

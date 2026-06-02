@@ -1,5 +1,6 @@
 module test.FuzzyMatch;
 
+import std.stdio     : writefln;
 import std.format    : format;
 import std.algorithm : all, any, map;
 import std.typecons  : Tuple, tuple;
@@ -11,7 +12,6 @@ public:
     string[] expValues;
     string[] genValues;
     bool anyOrder;
-    int skipBack;
 
     static FuzzyMatch NONE = FuzzyMatch([], [], false);
 
@@ -35,7 +35,7 @@ private:
     static FuzzyMatch[] MATCHES = [
         // in order matches
         FuzzyMatch(["typedef", "ENCLAVE_TARGET_FUNCTION", "(", "*", "PENCLAVE_TARGET_FUNCTION", ")"], 
-                   ["typedef", "ENCLAVE_TARGET_FUNCTION", "*", "PENCLAVE_TARGET_FUNCTION"], false, 2),
+                   ["typedef", "ENCLAVE_TARGET_FUNCTION", "*", "PENCLAVE_TARGET_FUNCTION"], false),
         FuzzyMatch(["__int64"], ["long", "long"], false),
         FuzzyMatch(["__int32"], ["int"], false),
 
@@ -44,13 +44,17 @@ private:
         FuzzyMatch(["<declspec-noinline>", "__inline", "unsigned", "__int64"], 
                    ["<declspec-noinline>", "__inline", "unsigned", "long", "long"], true),
 
-        // __inline wchar_t static __declspec(deprecated())
+        FuzzyMatch(["void", "__stdcall", "<declspec-dllimport>", "<declspec-noreturn>"], true),
+
+        FuzzyMatch(["void", "__stdcall", "<declspec-deprecated>", "<declspec-dllimport>"], true),
+        FuzzyMatch(["BOOL", "__stdcall", "<declspec-deprecated>", "<declspec-dllimport>"], true),
+        FuzzyMatch(["DWORD", "__stdcall", "<declspec-deprecated>", "<declspec-dllimport>"], true),
+
         FuzzyMatch(["__inline", "wchar_t", "static", "<declspec-deprecated-4>"], true),            
 
         FuzzyMatch(["struct", "<declspec-align>"], true),
         FuzzyMatch(["union", "<declspec-align>"], true),
 
-        // struct __declspec(align(16)) __pragma(warning(push)) __pragma(warning(disable:4845)) __declspec(no_init_all) __pragma(warning(pop))
         FuzzyMatch(["struct", "<declspec-align>", "<pragma-warning-push>", "<pragma-warning-disable-1>", "<declspec-no-init-all>", "<pragma-warning-pop>"], true),
 
         FuzzyMatch(["struct", "<declspec-deprecated-1>"], true),
@@ -86,6 +90,14 @@ private:
         FuzzyMatch(["const", "DWORD"], true),
         FuzzyMatch(["const", "DWORD64"], true),
         FuzzyMatch(["const", "rsize_t"], true),
+        FuzzyMatch(["const", "TOUCHINPUT"], true),
+        FuzzyMatch(["const", "MENUINFO"], true),
+        FuzzyMatch(["const", "MENUITEMINFOA"], true),
+        FuzzyMatch(["const", "MENUITEMINFOW"], true),
+        FuzzyMatch(["const", "SCROLLINFO"], true),
+        FuzzyMatch(["const", "GESTUREINFO"], true),
+        FuzzyMatch(["const", "WINDOW_ACTION"], true),
+        FuzzyMatch(["const", "LPCWSTR"], true),
 
         FuzzyMatch(["volatile", "BOOLEAN"], true),
         FuzzyMatch(["volatile", "BYTE"], true),
@@ -102,6 +114,9 @@ private:
         FuzzyMatch(["volatile", "PVOID"], true),
 
         FuzzyMatch(["__int32", "PVOID"], true),
+
+        FuzzyMatch(["__unaligned", "struct", "tagMETARECORD"], true),
+        FuzzyMatch(["__unaligned", "struct", "tagMETAHEADER"], true),
 
         FuzzyMatch(["__unaligned", "void"], true),
         FuzzyMatch(["__unaligned", "WCHAR"], true),
@@ -127,6 +142,10 @@ private:
     ];
 
     static string[][string] SPECIALS = [
+        // __declspec(deprecated)
+        "<declspec-deprecated>": [
+            "__declspec", "(", "deprecated", ")"
+        ],
         // __declspec(deprecated(<string>))
         "<declspec-deprecated-1>": [
             "__declspec", "(", "deprecated", "(",
@@ -165,21 +184,28 @@ private:
         // __declspec(noinline)
         "<declspec-noinline>": [
             "__declspec", "(", "noinline", ")",
-        ]
+        ],
+        //__declspec(dllimport)
+        "<declspec-dllimport>": [
+            "__declspec", "(", "dllimport", ")",
+        ],
+        //__declspec(noreturn)
+        "<declspec-noreturn>": [
+            "__declspec", "(", "noreturn", ")",
+        ],
+        //__declspec(dllexport)
+        "<declspec-dllexport>": [
+            "__declspec", "(", "dllexport", ")",
+        ],
     ];
 
     this(string[] values, bool anyOrder) {
-        this(values, values, anyOrder, 0);
+        this(values, values, anyOrder);
     }
-
     this(string[] expValues, string[] genValues, bool anyOrder) {
-        this(expValues, genValues, anyOrder, 0);
-    }
-    this(string[] expValues, string[] genValues, bool anyOrder, int skipBack) {
         this.expValues = expValues;
         this.genValues = genValues;
         this.anyOrder = anyOrder;
-        this.skipBack = skipBack;
     }
 
     Tuple!(bool, int, int) 
@@ -192,25 +218,30 @@ private:
 
     Tuple!(bool, int, int)
     matchesInOrder(CompareRelaxed comparer) {
-        bool m = comparer.expMatchesN(-skipBack, expValues) && 
-                 comparer.genMatchesN(-skipBack, genValues);
+        bool m = comparer.expMatches(expValues) && 
+                 comparer.genMatches(genValues);
         return tuple(
             m, 
-            expValues.length.as!int - skipBack, 
-            genValues.length.as!int - skipBack);
+            expValues.length.as!int, 
+            genValues.length.as!int);
     }
 
     Tuple!(bool, int, int) 
     matchesAnyOrder(CompareRelaxed comparer) {
 
+        // bool dbg = comparer.peekExpectedLine() == 13418;
+        enum dbg = false;
+
         int inner(string delegate(int, bool) peek, string[] values) {
             int i = 0;
             bool[] seen = new bool[values.length];
             int numSeen;
-            lp: while (numSeen < values.length) {
+            lp: while(numSeen < values.length) {
+
+                if(dbg) writefln("-> [%s] %s", i, peek(i, false));
 
                 lp2: foreach(v; 0 .. values.length) {
-                    if(seen[v]) continue;
+                    if(seen[v]) continue;   
 
                     if(auto special = values[v] in SPECIALS) {
                         int j = i;
@@ -222,6 +253,9 @@ private:
                         numSeen++;
                         i = j;
                         continue lp;
+                    }
+                    else if(values[v][0]=='<') {
+                        assert(false, "probable typo: %s".format(values[v]));
                     }
                     else if(values[v] == peek(i, false)) {
                         seen[v] = true;

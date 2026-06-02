@@ -193,8 +193,19 @@ Expr attachAndRead(Node parent, Expr newExpr, Tokens tokens, bool andRead) {
     // Swap expressions according to operator precedence
     if(Expr prevExpr = prev.as!Expr) {
 
-        // Adjust to account for operator precedence
-        while(prevExpr.parent && newExpr.precedence() > prevExpr.precedence()) {
+        while(prevExpr.parent) {
+
+            if(newExpr.precedence() < prevExpr.precedence()) {
+                break;
+            }
+            // Stop swapping if the precedence is the same
+            // unless this is an Index followed by a Dot.
+            // This feels a bit hacky but seems to be working 
+            if(newExpr.precedence() == prevExpr.precedence()) {
+                if(!(prevExpr.isA!Index && newExpr.isA!Dot)) {
+                    break;
+                }
+            }
 
             if(!prevExpr.parent.isA!Expr) {
                 prev = prevExpr.parent;
