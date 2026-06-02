@@ -333,60 +333,7 @@ private:
         buf.add(")");
     }
     void generate(Pragma pragma_) {
-        if(pragma_.isHash) {
-            buf.add("#pragma ");
-        } else {
-            buf.add("__pragma(");
-        }
-        switch(pragma_.kind) {
-            case Pragma.PragmaKind.WARNING: 
-                buf.add("warning(");
-                foreach(i, w; pragma_.data.warnings) {
-                    if(i > 0) buf.add("; ");
-
-                    if(w.push) {
-                        buf.add("push");
-                        if(w.level > 0) buf.add(", %s", w.level);
-                    } else if(w.pop) {
-                        buf.add("pop");
-                    } else {
-                        buf.add("%s : %s", w.specifier, w.numbers.join(" "));
-                    }
-                }
-                buf.add(")");
-                break;
-            case Pragma.PragmaKind.PACK: {
-                auto pack = pragma_.data.pack;
-                buf.add("pack(");
-                if(pack.isPush && pack.n > 0) {
-                    buf.add("push, %s", pack.n);
-                } else if(pack.isPush && pack.n == 0) {
-                    buf.add("push");
-                } else if(pack.isPop) {
-                    buf.add("pop");
-                } else {
-                    buf.add("%s", pack.n);
-                }
-                buf.add(")");
-                break;
-            }
-            case Pragma.PragmaKind.INTRINSIC: {
-                auto i = pragma_.data.intrinsic;
-                buf.add("intrinsic(%s)", i.funcnames.join(", "));
-                break;
-            }
-            case Pragma.PragmaKind.DEPRECATED:
-                buf.add("deprecated(%s)", pragma_.data.deprecated_.funcNames.join(", "));
-                break;
-            case Pragma.PragmaKind.COMMENT:
-                buf.add("comment(%s)", pragma_.data.comment.comments.join(", "));
-                break;
-            default: todo("generate(Pragma): implement %s".format(pragma_.kind));
-        }
-
-        if(!pragma_.isHash) {
-            buf.add(")");
-        }
+        buf.add("%s", pragma_.toString());
     }
     void generate(Postfix p) {
         generate(p.expr());
