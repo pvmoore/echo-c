@@ -13,19 +13,23 @@ struct TypeModifiers {
     // These also appear as StorageClasses 
     bool __declspec_dllimport;
     bool __declspec_dllexport;
-    bool __declspec_deprecated;
     bool __declspec_align;   
     bool __declspec_no_init_all;   
     Pragma[] pragmas;           // 0..many __pragma declarations          
 
-    string[] deprecationValue;  // may be set if __declspec_deprecated is true
     uint alignValue;            // set if __declspec_align is true   
+
+    struct Deprecation {
+        string[] values;
+    }
+    Deprecation[] deprecations;
 
     bool any() {
         return isConst || isSigned || isUnsigned || isVolatile || isUnaligned ||
-               __declspec_dllimport || __declspec_dllexport || __declspec_deprecated || __declspec_align || 
+               __declspec_dllimport || __declspec_dllexport || __declspec_align || 
                __declspec_no_init_all || 
-               pragmas.length > 0;
+               pragmas.length > 0 ||
+               deprecations.length > 0;
     }
 
     void mergeFrom(TypeModifiers other) {
@@ -36,12 +40,11 @@ struct TypeModifiers {
         isUnaligned |= other.isUnaligned;
         __declspec_dllimport |= other.__declspec_dllimport;
         __declspec_dllexport |= other.__declspec_dllexport;
-        __declspec_deprecated |= other.__declspec_deprecated;
         __declspec_align |= other.__declspec_align;
         __declspec_no_init_all |= other.__declspec_no_init_all;
 
         alignValue |= other.alignValue; 
-        deprecationValue ~= other.deprecationValue;
+        deprecations ~= other.deprecations;
         pragmas ~= other.pragmas;
     }
 
@@ -54,9 +57,12 @@ struct TypeModifiers {
         if(isUnaligned) s ~= "__unaligned ";
         if(__declspec_dllimport) s ~= "__declspec(dllimport) ";
         if(__declspec_dllexport) s ~= "__declspec(dllexport) ";
-        if(__declspec_deprecated) s ~= "__declspec(deprecated%s)\n".format(deprecationValue.length > 0 ? "(%s)".format(deprecationValue.join(" ")) : "");
         if(__declspec_align) s ~= "__declspec(align(%s)) ".format(alignValue);
         if(__declspec_no_init_all) s ~= "__declspec(no_init_all) ";
+        
+        foreach(d; deprecations) {
+            s ~= "__declspec(deprecated%s)\n".format(d.values.length > 0 ? "(%s)".format(d.values.join(" ")) : "");
+        }
         foreach(p; pragmas) {
             s ~= "%s ".format(p.toString());
         }
@@ -101,15 +107,16 @@ void parseDeclspec(Tokens tokens, ref TypeModifiers q) {
         q.__declspec_dllexport = true;
     } else if(tokens.matches("deprecated")) {
         tokens.skip("deprecated");
-        q.__declspec_deprecated = true;
+        TypeModifiers.Deprecation d;
         if(tokens.matches(TKind.LPAREN)) {
             tokens.skip(TKind.LPAREN);
             while(!tokens.matches(TKind.RPAREN)) {
-                q.deprecationValue ~= tokens.text(); 
+                d.values ~= tokens.text(); 
                 tokens.next();
             }
             tokens.skip(TKind.RPAREN);
         }  
+        q.deprecations ~= d;
     } else if(tokens.matches("align")) {
         tokens.skip("align");
         tokens.skip(TKind.LPAREN);

@@ -59,6 +59,11 @@ private:
 
         FuzzyMatch(["struct", "<declspec-deprecated-1>"], true),
 
+        FuzzyMatch(["const", "struct", "_SMB_SHARE_FLUSH_AND_PURGE_INPUT"], true),
+        FuzzyMatch(["const", "struct", "_SMB_SHARE_FLUSH_AND_PURGE_OUTPUT"], true),
+
+        FuzzyMatch(["extern", "const", "<declspec-dllimport>"], true),
+
         FuzzyMatch(["const", "volatile", "void"], true),
         FuzzyMatch(["const", "volatile", "BOOLEAN"], true),
         FuzzyMatch(["const", "volatile", "BYTE"], true),

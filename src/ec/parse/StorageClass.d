@@ -19,12 +19,15 @@ struct StorageClass {
     // Applicable to types. May also appear as a TypeModifier
     bool __declspec_dllimport;
     bool __declspec_dllexport;
-    bool __declspec_deprecated;
     bool __declspec_align;
 
-    string[] deprecationValue;
     uint alignValue;            // set if __declspec_align is true
     
+    struct Deprecation {
+        string[] values;
+    }
+    Deprecation[] deprecations;
+
     string toString() {
         string s;
         if(isExtern) s ~= "extern ";
@@ -35,10 +38,12 @@ struct StorageClass {
         if(__declspec_dllimport) s ~= "__declspec(dllimport) ";
         if(__declspec_dllexport) s ~= "__declspec(dllexport) ";
         if(__declspec_noinline) s ~= "__declspec(noinline) ";
-        if(__declspec_deprecated) s ~= "__declspec(deprecated%s)\n".format(deprecationValue.length > 0 ? "(%s)".format(deprecationValue.join(" ")) : "");
         if(__declspec_allocator) s ~= "__declspec(allocator) ";
         if(__declspec_restrict) s ~= "__declspec(restrict) ";
         if(__declspec_align) s ~= "__declspec(align(%s)) ".format(alignValue);
+        foreach(d; deprecations) {
+            s ~= "__declspec(deprecated%s)\n".format(d.values.length > 0 ? "(%s)".format(d.values.join(" ")) : "");
+        }
         return s;
     }
 }
@@ -75,15 +80,16 @@ StorageClass parseStorageClass(Tokens tokens, StorageClass storageClass) {
                 storageClass.__declspec_noinline = true;
             } else if(tokens.matches("deprecated")) {
                 tokens.skip("deprecated");
-                storageClass.__declspec_deprecated = true;
+                StorageClass.Deprecation d;
                 if(tokens.matches(TKind.LPAREN)) {
                     tokens.skip(TKind.LPAREN);
                     while(!tokens.matches(TKind.RPAREN)) {
-                        storageClass.deprecationValue ~= tokens.text(); 
+                        d.values ~= tokens.text(); 
                         tokens.next();
                     }
                     tokens.skip(TKind.RPAREN);
                 }
+                storageClass.deprecations ~= d;
             } else if(tokens.matches("allocator")) {
                 tokens.skip("allocator");
                 storageClass.__declspec_allocator = true;
