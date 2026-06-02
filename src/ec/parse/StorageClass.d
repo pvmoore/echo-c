@@ -11,22 +11,8 @@ struct StorageClass {
     bool isStatic;
     bool inline;                // function only
     bool forceInline;           // function only
-    bool __declspec_noreturn;   // function only
-    bool __declspec_noinline;   // function only
-    bool __declspec_restrict;   // function only (returning a pointer type)
-    bool __declspec_allocator;  // function only
 
-    // Applicable to types. May also appear as a TypeModifier
-    bool __declspec_dllimport;
-    bool __declspec_dllexport;
-    bool __declspec_align;
-
-    uint alignValue;            // set if __declspec_align is true
-    
-    struct Deprecation {
-        string[] values;
-    }
-    Deprecation[] deprecations;
+    Declspec[] declspecs;
 
     string toString() {
         string s;
@@ -34,15 +20,8 @@ struct StorageClass {
         if(isStatic) s ~= "static ";
         if(inline) s ~= "__inline ";
         if(forceInline) s ~= "__forceinline ";
-        if(__declspec_noreturn) s ~= "__declspec(noreturn) ";
-        if(__declspec_dllimport) s ~= "__declspec(dllimport) ";
-        if(__declspec_dllexport) s ~= "__declspec(dllexport) ";
-        if(__declspec_noinline) s ~= "__declspec(noinline) ";
-        if(__declspec_allocator) s ~= "__declspec(allocator) ";
-        if(__declspec_restrict) s ~= "__declspec(restrict) ";
-        if(__declspec_align) s ~= "__declspec(align(%s)) ".format(alignValue);
-        foreach(d; deprecations) {
-            s ~= "__declspec(deprecated%s)\n".format(d.values.length > 0 ? "(%s)".format(d.values.join(" ")) : "");
+        foreach(d; declspecs) {
+            s ~= "%s ".format(d.toString());
         }
         return s;
     }
@@ -63,49 +42,7 @@ StorageClass parseStorageClass(Tokens tokens, StorageClass storageClass) {
             storageClass.forceInline = true;
             tokens.next();
         } else if(tokens.matches("__declspec")) {
-            tokens.next();
-            tokens.skip(TKind.LPAREN);
-
-            if(tokens.matches("noreturn")) {
-                tokens.skip("noreturn");
-                storageClass.__declspec_noreturn = true;
-            } else if(tokens.matches("dllimport")) {
-                tokens.skip("dllimport");
-                storageClass.__declspec_dllimport = true;
-            } else if(tokens.matches("dllexport")) {
-                tokens.skip("dllexport");
-                storageClass.__declspec_dllexport = true;
-            } else if(tokens.matches("noinline")) {
-                tokens.skip("noinline");
-                storageClass.__declspec_noinline = true;
-            } else if(tokens.matches("deprecated")) {
-                tokens.skip("deprecated");
-                StorageClass.Deprecation d;
-                if(tokens.matches(TKind.LPAREN)) {
-                    tokens.skip(TKind.LPAREN);
-                    while(!tokens.matches(TKind.RPAREN)) {
-                        d.values ~= tokens.text(); 
-                        tokens.next();
-                    }
-                    tokens.skip(TKind.RPAREN);
-                }
-                storageClass.deprecations ~= d;
-            } else if(tokens.matches("allocator")) {
-                tokens.skip("allocator");
-                storageClass.__declspec_allocator = true;
-            } else if(tokens.matches("restrict")) {
-                tokens.skip("restrict");
-                storageClass.__declspec_restrict = true;   
-            } else if(tokens.matches("align")) {
-                tokens.skip("align");
-                tokens.skip(TKind.LPAREN);
-                storageClass.alignValue = tokens.textToInt(); tokens.next();
-                tokens.skip(TKind.RPAREN);
-                storageClass.__declspec_align = true; 
-            } else {
-                todo("unsupported __declspec %s".format(tokens.text()));
-            }
-            tokens.skip(TKind.RPAREN);
+            storageClass.declspecs ~= parseDeclspecs(tokens);
         } else {
             break;
         }

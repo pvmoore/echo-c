@@ -76,6 +76,7 @@ import ec.parse.type.Type;
 import ec.parse.type.TypeRef;
 
 import ec.parse.CallingConvention;
+import ec.parse.DeclspecParser;
 import ec.parse.ExprParser;
 import ec.parse.Operator;
 import ec.parse.PragmaParser;
