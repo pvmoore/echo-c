@@ -103,7 +103,9 @@ void parsePragmaComment(Node parent, Tokens tokens, bool isHash) {
 
     tokens.skip(TKind.LPAREN);
     while(!tokens.matchesOneOf(TKind.RPAREN, TKind.NONE)) {
-        pragma_.data.comment.comments ~= tokens.text();
+        if(tokens.matchesOneOf(TKind.STRING, TKind.IDENTIFIER)) {
+            pragma_.data.comment.comments ~= tokens.text().strip();
+        }
         tokens.next();
     }
     tokens.skip(TKind.RPAREN);

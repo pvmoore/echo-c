@@ -79,6 +79,16 @@ private:
         FuzzyMatch(["const", "volatile", "LONG64"], true),
         FuzzyMatch(["const", "volatile", "PVOID"], true),
         
+        FuzzyMatch(["static", "__inline", "LPUWSTR"], true),
+        FuzzyMatch(["static", "__inline", "PUWSTR_C"], true),
+        FuzzyMatch(["static", "__inline", "PUWSTR", "<declspec-deprecated>"], true),
+        FuzzyMatch(["static", "__inline", "PUWSTR"], true),
+        FuzzyMatch(["static", "__inline", "int"], true),
+        FuzzyMatch(["static", "__inline", "size_t"], true),
+
+        FuzzyMatch(["__unaligned", "struct", "tagMETARECORD"], true),
+        FuzzyMatch(["__unaligned", "struct", "tagMETAHEADER"], true),
+
         FuzzyMatch(["const", "wchar_t"], true),
         FuzzyMatch(["const", "_locale_t"], true),
         FuzzyMatch(["const", "size_t"], true),
@@ -103,6 +113,7 @@ private:
         FuzzyMatch(["const", "GESTUREINFO"], true),
         FuzzyMatch(["const", "WINDOW_ACTION"], true),
         FuzzyMatch(["const", "LPCWSTR"], true),
+        FuzzyMatch(["const", "OLECHAR"], true),
 
         FuzzyMatch(["volatile", "BOOLEAN"], true),
         FuzzyMatch(["volatile", "BYTE"], true),
@@ -119,9 +130,6 @@ private:
         FuzzyMatch(["volatile", "PVOID"], true),
 
         FuzzyMatch(["__int32", "PVOID"], true),
-
-        FuzzyMatch(["__unaligned", "struct", "tagMETARECORD"], true),
-        FuzzyMatch(["__unaligned", "struct", "tagMETAHEADER"], true),
 
         FuzzyMatch(["__unaligned", "void"], true),
         FuzzyMatch(["__unaligned", "WCHAR"], true),
