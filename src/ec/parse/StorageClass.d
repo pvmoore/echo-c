@@ -27,25 +27,17 @@ struct StorageClass {
     }
 }
 
-StorageClass parseStorageClass(Tokens tokens, StorageClass storageClass) {
+StorageClass parseStorageClass(Tokens tokens, StorageClass sc) {
     while(true) {
-        if(tokens.matches("extern")) {
-            storageClass.isExtern = true;
-            tokens.next();
-        } else if(tokens.matches("static")) {
-            storageClass.isStatic = true;
-            tokens.next();
-        } else if(tokens.matches("__inline") || tokens.matches("inline")) {
-            storageClass.inline = true;
-            tokens.next();
-        } else if(tokens.matches("__forceinline")) {
-            storageClass.forceInline = true;
-            tokens.next();
-        } else if(tokens.matches("__declspec")) {
-            storageClass.declspecs ~= parseDeclspecs(tokens);
-        } else {
-            break;
+        switch(tokens.text()) {
+            case "extern": sc.isExtern = true; tokens.next(); break;
+            case "static": sc.isStatic = true; tokens.next(); break;
+            case "inline": 
+            case "__inline": sc.inline = true; tokens.next(); break;
+            case "__forceinline": sc.forceInline = true; tokens.next(); break;
+            case "__declspec": sc.declspecs ~= parseDeclspecs(tokens); break;
+            default: return sc;
         }
     }
-    return storageClass;
-}
+    assert(false);
+} 
