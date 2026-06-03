@@ -2,6 +2,8 @@ module ec.parse.TypeModifiers;
 
 import ec.all;
 
+enum NO_TYPE_MODIFIERS = TypeModifiers();
+
 struct TypeModifiers {
     bool isConst;  
     bool isSigned;

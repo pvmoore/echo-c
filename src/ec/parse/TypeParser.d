@@ -35,7 +35,6 @@ ParseTypeResult parseType(Node parent, Tokens tokens, bool required = true) {
 
     type = parseSimpleType(tokens);
     
-
     if(!type && tokens.matches("struct")) {
         type = parseStruct(tokens);
     }
@@ -211,6 +210,7 @@ Type parseSimpleType(Tokens tokens) {
     return t;
 }
 
+/** Check cached Typedefs and return a TypeRef if found */
 Type parseTypedef(Tokens tokens) {
     CFile cfile = tokens.cfile;
     if(Typedef td = cfile.typedefs.get(tokens.text(), null)) {
@@ -251,7 +251,6 @@ Type parseStruct(Tokens tokens) {
     }
 
     TypeRef type = new TypeRef(name, EType.STRUCT);
-    type.modifiers = modifiers;
 
     if(tokens.matches(TKind.LBRACE)) {
         tokens.next();
@@ -260,6 +259,7 @@ Type parseStruct(Tokens tokens) {
         Struct struct_ = tokens.make!Struct();
         struct_.name = type.name;
         struct_.hasBody = true;
+        struct_.modifiers = modifiers;
 
         type.nodeRef = struct_;
 
@@ -271,6 +271,7 @@ Type parseStruct(Tokens tokens) {
         tokens.skip(TKind.RBRACE);
     } else {
         // This is struct <name>;
+        type.modifiers = modifiers;
     }
 
     return type;
@@ -291,7 +292,6 @@ Type parseUnion(Tokens tokens) {
     }
 
     TypeRef type = new TypeRef(name, EType.UNION);
-    type.modifiers = modifiers;
 
     if(tokens.matches(TKind.LBRACE)) {
         tokens.next();
@@ -300,6 +300,7 @@ Type parseUnion(Tokens tokens) {
         Union union_ = tokens.make!Union();
         union_.name = type.name;
         union_.hasBody = true;
+        union_.modifiers = modifiers;
 
         type.nodeRef = union_;
 
@@ -311,6 +312,7 @@ Type parseUnion(Tokens tokens) {
         tokens.skip(TKind.RBRACE);
     } else {
         // This is union <name>;
+        type.modifiers = modifiers;
     }
 
     return type;
@@ -327,7 +329,6 @@ Type parseEnum(Tokens tokens) {
     }
 
     TypeRef type = new TypeRef(name, EType.ENUM);
-    type.modifiers = modifiers;
 
     if(tokens.matches(TKind.LBRACE)) {
         tokens.next();
@@ -336,6 +337,7 @@ Type parseEnum(Tokens tokens) {
         Enum enum_ = tokens.make!Enum();
         enum_.name = type.name;
         enum_.hasBody = true;
+        enum_.modifiers = modifiers;
 
         type.nodeRef = enum_;
 
@@ -368,6 +370,7 @@ Type parseEnum(Tokens tokens) {
         tokens.skip(TKind.RBRACE);
     } else {
         // This is enum <name>;
+        type.modifiers = modifiers;
     }
 
     return type;

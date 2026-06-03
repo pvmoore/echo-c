@@ -85,15 +85,10 @@ void parseStmt(Node parent, Tokens tokens) {
                 className(parent), tr.hasChildren());
 
             if(tr.hasChildren()) {
+                // Extract the Struct, Union or Enum, add it to the AST
+                // and throw away the TypeRef
                 Stmt def = tan.type.first().as!Stmt;
                 parent.add(def);
-                if(Struct st = def.as!Struct) {
-                    st.modifiers = tr.modifiers;
-                } else if(Enum en = def.as!Enum) {
-                    en.modifiers = tr.modifiers;
-                } else if(Union un = def.as!Union) {
-                    un.modifiers = tr.modifiers;
-                } else assert(false, "handle %s".format(def));
                 return;
             } else if(parent.isA!CFile || parent.isA!Function) {
                 // struct <name>;
@@ -101,6 +96,8 @@ void parseStmt(Node parent, Tokens tokens) {
                 // union <name>;
                 parent.add(tr);
                 return;
+            } else {
+                // This is probably a Var with no name
             }
             // Drop into Var
         }
