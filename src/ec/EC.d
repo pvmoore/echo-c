@@ -55,8 +55,8 @@ public:
     void generate() {
         log(Log.General, "Generating to [%s]", config.targetDirectory);
         foreach(cfile; cfiles.values) {
-            StmtGenerator gen = new StmtGenerator();
-            gen.generate(cfile);
+            auto gen = config.emitter ? config.emitter : new CEmitter();
+            gen.emit(cfile);
         }
     }
 private:

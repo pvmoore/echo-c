@@ -8,3 +8,5 @@ int *(* (*(*foo2))(void) );
 int (* ((*foo3[2]))(void) );     
 
 int baz[3]; 
+
+typedef struct VmaAllocator_T* VmaAllocator; 

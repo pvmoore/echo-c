@@ -1,11 +1,12 @@
-module ec.gen.StmtGenerator;
+module ec.emit.echo.CEmitter;
 
 import ec.all;
 import std.file : write;
 
-final class StmtGenerator {
+final class CEmitter : IEmitter {
 public:
-    void generate(CFile cfile) {
+    /** Implement IEmitter */
+    override void emit(CFile cfile) {
         log(Log.StmtGenerator, "Generating %s", cfile.filename);
         buf = new StringBuffer();
 
@@ -533,7 +534,8 @@ private:
         buf.add("struct %s", s.name);
 
         if(s.hasBody) {
-            openScope();
+            buf.add("   // Struct('%s')\n", s.name);
+            openScope(); 
 
             foreach(m; s.body()) {
                 generate(m);
@@ -547,6 +549,7 @@ private:
         buf.add("union %s", u.name);
 
         if(u.hasBody) {
+            buf.add("   // Union('%s')\n", u.name);
             openScope();
 
             foreach(m; u.body()) {
@@ -561,6 +564,7 @@ private:
         buf.add("enum %s", e.name);
 
         if(e.hasBody) {
+            buf.add("   // Enum('%s')\n", e.name);
             openScope();
 
             foreach(i, m; e.members) {

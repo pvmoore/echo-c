@@ -19,6 +19,11 @@ typedef struct {
     Y y;
 } Z;
 
+typedef enum _khr_df_model_e {
+    KHR_DF_MODEL_UNSPECIFIED  = 0U,
+    KHR_DF_MODEL_RGBSDA       = 1U,
+} khr_df_model_e;
+
 void main() {
     ATTRIBUTES_RANGES attributeRanges;
     ATTRIBUTES Ranges[2] = attributeRanges.Ranges;

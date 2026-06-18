@@ -9,6 +9,8 @@ struct Config {
 
     bool writePreprocessedFiles = true;
 
+    IEmitter emitter;
+
     void check() {
         this.sourceDirectory = toCanonicalDirectory(sourceDirectory);
         this.targetDirectory = toCanonicalDirectory(targetDirectory);

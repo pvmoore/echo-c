@@ -18,6 +18,10 @@ public:
     }
 }
 
+bool isVoidValue(Type t) {
+    return t.isA!SimpleType && t.etype == EType.VOID && !t.isPtr();
+}
+
 bool hasEmbeddedName(Type t) {
     if(auto at = t.as!ArrayType) {
         return true;
@@ -27,4 +31,17 @@ bool hasEmbeddedName(Type t) {
         if(tr.nodeRef) return tr.nodeRef.isA!Function; 
     }
     return false;
+}
+
+Struct extractStruct(Type t) {
+    if(t.isA!TypeRef && t.as!TypeRef.nodeRef.isA!Struct) {
+        return t.as!TypeRef.nodeRef.as!Struct;
+    }
+    return null;
+}
+Union extractUnion(Type t) {
+    if(t.isA!TypeRef && t.as!TypeRef.nodeRef.isA!Union) {
+        return t.as!TypeRef.nodeRef.as!Union;
+    }
+    return null;
 }

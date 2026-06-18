@@ -24,6 +24,19 @@
                 "panel": "shared"
             },
             "problemMatcher": []
+        },
+        {
+            "label": "**** Run Generator ****",
+            "type": "shell",
+            "windows": {
+                "command": "scripts/run_build.bat dmd debug gen",
+            },
+            "group": "build",
+            "presentation": {
+                "reveal": "always",
+                "panel": "shared"
+            },
+            "problemMatcher": []
         }
     ]
 }

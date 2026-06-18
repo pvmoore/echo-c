@@ -11,10 +11,16 @@ buildType "release" {
 configuration "test" {
 	targetType "executable"
 	targetName "ec"
+	excludedSourceFiles "src/test_generator/gen.d"
+}
+configuration "gen" {
+	targetType "executable"
+	targetName "gen"
+	excludedSourceFiles "src/test/test.d"
 }
 configuration "library" {
 	targetType "library"
-	excludedSourceFiles "src/test.d"
+	excludedSourceFiles "src/test/test.d" "src/test_generator/gen.d"
 }
 
 dependency "common" version="~master"

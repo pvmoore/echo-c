@@ -20,7 +20,11 @@ public:
         super(estmt, location);
     }
 
-    Stmt[] body() { assert(hasBody); return children.map!(c => c.as!Stmt).array(); }
+    auto varRange() { return children.map!(c => c.as!Var).filter!(v=>v !is null); }
+
+    bool hasBitfields() { return varRange().any!(v => v.hasBitfield); }
+
+    Stmt[] body() { return children.map!(c => c.as!Stmt).array(); }
 
     override string toString() {
         return "Struct(%s)".format(name);

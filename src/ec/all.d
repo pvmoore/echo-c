@@ -4,9 +4,10 @@ public:
 
 import core.atomic            : atomicOp;
 
+import std.stdio              : writefln;
 import std.format             : format;
 import std.range              : array, join;
-import std.algorithm          : map, filter;
+import std.algorithm          : any, map, filter;
 import std.file               : exists, isFile, isDir, mkdirRecurse;
 import std.path               : baseName, stripExtension;
 import std.string             : strip, indexOf, split, splitLines, toLower;
@@ -15,8 +16,6 @@ import std.typecons           : Tuple, tuple;
 import std.datetime.stopwatch : StopWatch;
 
 import ec;
-
-import ec.gen.StmtGenerator;
 
 import ec.lex.Token;
 import ec.lex.Tokens;

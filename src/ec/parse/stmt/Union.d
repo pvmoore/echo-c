@@ -21,7 +21,7 @@ public:
         super(estmt, location);
     }
 
-    Stmt[] body() { assert(hasBody); return children.map!(c => c.as!Stmt).array(); }
+    Stmt[] body() { return children.map!(c => c.as!Stmt).array(); }
 
     override string toString() {
         return "Union(%s)".format(name);
