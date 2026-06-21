@@ -23,6 +23,7 @@ void generateKtx() {
 "module ktx_api;
 
 private import vulkan.api.vulkan_api;
+private import core.stdc.stdio : FILE;
 
 public:
 
@@ -41,13 +42,24 @@ public:
 //     }
 ".format(version_);
 
+    auto footerText = 
+"
+struct ktxTexture_vvtbl {} 
+struct ktxTexture_protected {}
+struct ktxTexture1_private {}
+struct ktxTexture2_private {}
+
+alias GLuint = uint;
+alias GLenum = uint;
+";
+
     auto generator = new APIEmitter(name)
         .addLoaderGenerator(new DLLLoaderGenerator("KTXLoader", dllName, dllNameDebug))
         .setHeaderText(headerText)
-        .setFooterText("")
+        .setFooterText(footerText)
         .setExcludePrefixes(["Vk", "PFN_Vk", "ktx_uint32_t_SIZE_ASSERT"])
-        .setAliasPrefixes(["Ktx", "ktx", "PFNKTX", "khr"])
-        .setTypePrefixes(["Ktx", "ktx", "khr", "_khr"])
+        .setAliasPrefixes(["Ktx", "ktx", "PFNKTX", "khr", "PFNKTEX", "PFNGL", "PFNVOIDFUNCTION"])
+        .setTypePrefixes(["Ktx", "ktx", "khr", "_khr", "streamType", "class_id"])
         .setFunctionPrefixes(["ktx", "khr"])
         //.addStdintAliases()
         ;

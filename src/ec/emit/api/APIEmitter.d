@@ -341,6 +341,7 @@ private:
         switch(stmt.estmt) {
             case EStmt.ENUM:
                 auto e = stmt.as!Enum;
+                addEnum(e);
                 break;
             case EStmt.FUNC:
                 auto f = stmt.as!Function;
@@ -388,6 +389,7 @@ private:
                         }
                     }
                     if(s) {
+                        if(s.name is null) s.name = td.name;
                         addStruct(s);
                     }
                 } else if(td.type.etype == EType.UNION) {
